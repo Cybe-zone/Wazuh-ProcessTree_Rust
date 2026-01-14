@@ -9,7 +9,100 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeNetwork();
     setDefaultTimes();
     loadClassifications();
+    loadThemePreference();
+    loadSidebarPreferences();
 });
+
+// Theme Management
+function toggleTheme() {
+    const body = document.body;
+    const slider = document.querySelector('.theme-toggle-slider');
+
+    body.classList.toggle('light-mode');
+
+    if (body.classList.contains('light-mode')) {
+        slider.textContent = '☀️';
+        localStorage.setItem('theme', 'light');
+    } else {
+        slider.textContent = '🌙';
+        localStorage.setItem('theme', 'dark');
+    }
+
+    // Reinitialize network with new theme colors
+    if (network && currentTreeData) {
+        updateVisualization(currentTreeData);
+    }
+}
+
+function loadThemePreference() {
+    const theme = localStorage.getItem('theme');
+    const slider = document.querySelector('.theme-toggle-slider');
+
+    if (theme === 'light') {
+        document.body.classList.add('light-mode');
+        slider.textContent = '☀️';
+    } else {
+        slider.textContent = '🌙';
+    }
+}
+
+// Sidebar Management
+function toggleSidebar(side) {
+    const container = document.getElementById('mainContainer');
+    const leftHidden = container.classList.contains('hide-left');
+    const rightHidden = container.classList.contains('hide-right');
+
+    if (side === 'left') {
+        if (leftHidden) {
+            container.classList.remove('hide-left');
+            if (rightHidden) {
+                container.classList.remove('hide-both');
+                container.classList.add('hide-right');
+            }
+        } else {
+            container.classList.add('hide-left');
+            if (rightHidden) {
+                container.classList.add('hide-both');
+            }
+        }
+        localStorage.setItem('leftSidebarHidden', !leftHidden);
+    } else if (side === 'right') {
+        if (rightHidden) {
+            container.classList.remove('hide-right');
+            if (leftHidden) {
+                container.classList.remove('hide-both');
+                container.classList.add('hide-left');
+            }
+        } else {
+            container.classList.add('hide-right');
+            if (leftHidden) {
+                container.classList.add('hide-both');
+            }
+        }
+        localStorage.setItem('rightSidebarHidden', !rightHidden);
+    }
+
+    // Refit network after sidebar toggle
+    setTimeout(() => {
+        if (network) {
+            network.fit();
+        }
+    }, 350);
+}
+
+function loadSidebarPreferences() {
+    const container = document.getElementById('mainContainer');
+    const leftHidden = localStorage.getItem('leftSidebarHidden') === 'true';
+    const rightHidden = localStorage.getItem('rightSidebarHidden') === 'true';
+
+    if (leftHidden && rightHidden) {
+        container.classList.add('hide-both');
+    } else if (leftHidden) {
+        container.classList.add('hide-left');
+    } else if (rightHidden) {
+        container.classList.add('hide-right');
+    }
+}
 
 // Check if user is authenticated
 async function checkSession() {
@@ -47,7 +140,7 @@ function initializeNetwork() {
             widthConstraint: { maximum: 200 },
             font: {
                 size: 14,
-                color: '#ffffff',
+                color: document.body.classList.contains('light-mode') ? '#1a1a1a' : '#ffffff',
                 multi: 'html'
             },
             shadow: {
@@ -69,6 +162,10 @@ function initializeNetwork() {
                     enabled: true,
                     scaleFactor: 0.5
                 }
+            },
+            color: {
+                color: document.body.classList.contains('light-mode') ? '#999999' : '#666666',
+                highlight: '#76b947'
             }
         },
         physics: {
@@ -91,10 +188,17 @@ function initializeNetwork() {
             hover: true,
             tooltipDelay: 100,
             navigationButtons: true,
-            keyboard: true
+            keyboard: {
+                enabled: true,
+                bindToWindow: false
+            },
+            dragView: true,  // Enable dragging the view
+            zoomView: true,  // Enable zoom
+            dragNodes: true  // Allow moving nodes
         },
         layout: {
             hierarchical: {
+                enabled: true,
                 direction: 'UD',
                 sortMethod: 'directed',
                 nodeSpacing: 180,
@@ -104,6 +208,9 @@ function initializeNetwork() {
                 edgeMinimization: true,
                 parentCentralization: true
             }
+        },
+        configure: {
+            enabled: false
         }
     };
 
@@ -127,6 +234,11 @@ function initializeNetwork() {
                 }
             });
         }
+    });
+
+    // Enable mouse wheel zoom and drag in all directions
+    network.on('zoom', function(params) {
+        console.log('Zoom level:', params.scale);
     });
 }
 
@@ -213,6 +325,16 @@ function applyFilters() {
 // Update visualization
 function updateVisualization(treeData) {
     if (!network || !treeData) return;
+
+    // Update node colors based on theme
+    const isLightMode = document.body.classList.contains('light-mode');
+    treeData.nodes.forEach(node => {
+        node.font = {
+            size: 14,
+            color: isLightMode ? '#1a1a1a' : '#ffffff',
+            multi: 'html'
+        };
+    });
 
     // Update network data
     network.setData({

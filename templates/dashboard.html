@@ -13,23 +13,55 @@
             box-sizing: border-box;
         }
 
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: rgba(18, 18, 18, 0.95);
+            --bg-tertiary: rgba(255, 255, 255, 0.02);
+            --border-color: rgba(255, 255, 255, 0.05);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --text-muted: rgba(255, 255, 255, 0.5);
+            --accent-color: #76b947;
+            --accent-hover: #34c759;
+            --input-bg: rgba(255, 255, 255, 0.05);
+            --input-border: rgba(255, 255, 255, 0.1);
+            --card-bg: rgba(18, 18, 18, 0.95);
+        }
+
+        body.light-mode {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: rgba(255, 255, 255, 0.95);
+            --bg-tertiary: rgba(0, 0, 0, 0.02);
+            --border-color: rgba(0, 0, 0, 0.1);
+            --text-primary: #1a1a1a;
+            --text-secondary: rgba(0, 0, 0, 0.7);
+            --text-muted: rgba(0, 0, 0, 0.5);
+            --accent-color: #76b947;
+            --accent-hover: #34c759;
+            --input-bg: rgba(0, 0, 0, 0.05);
+            --input-border: rgba(0, 0, 0, 0.15);
+            --card-bg: rgba(255, 255, 255, 0.95);
+        }
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #0a0a0a;
-            color: #ffffff;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             overflow: hidden;
+            transition: background 0.3s ease, color 0.3s ease;
         }
 
         /* Header */
         .header {
-            background: rgba(18, 18, 18, 0.95);
+            background: var(--bg-secondary);
             backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(118, 185, 71, 0.2);
+            border-bottom: 1px solid var(--border-color);
             padding: 16px 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             z-index: 1000;
+            transition: all 0.3s ease;
         }
 
         .logo-section {
@@ -41,7 +73,7 @@
         .logo-icon {
             width: 40px;
             height: 40px;
-            background: linear-gradient(135deg, #76b947 0%, #34c759 100%);
+            background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-hover) 100%);
             border-radius: 8px;
             display: flex;
             align-items: center;
@@ -52,14 +84,14 @@
         .logo-text h1 {
             font-size: 18px;
             font-weight: 700;
-            background: linear-gradient(135deg, #76b947 0%, #34c759 100%);
+            background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-hover) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
         .logo-text p {
             font-size: 11px;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--text-muted);
         }
 
         .header-actions {
@@ -68,13 +100,44 @@
             align-items: center;
         }
 
+        /* Theme Toggle */
+        .theme-toggle {
+            position: relative;
+            width: 60px;
+            height: 30px;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 22px;
+            height: 22px;
+            background: var(--accent-color);
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        body.light-mode .theme-toggle-slider {
+            transform: translateX(30px);
+        }
+
         .status-badge {
             padding: 6px 12px;
             background: rgba(118, 185, 71, 0.15);
             border: 1px solid rgba(118, 185, 71, 0.3);
             border-radius: 6px;
             font-size: 12px;
-            color: #76b947;
+            color: var(--accent-color);
             display: flex;
             align-items: center;
             gap: 6px;
@@ -83,7 +146,7 @@
         .status-dot {
             width: 6px;
             height: 6px;
-            background: #76b947;
+            background: var(--accent-color);
             border-radius: 50%;
             animation: pulse 2s ease-in-out infinite;
         }
@@ -104,13 +167,13 @@
         }
 
         .btn-settings {
-            background: rgba(255, 255, 255, 0.05);
-            color: rgba(255, 255, 255, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: var(--input-bg);
+            color: var(--text-secondary);
+            border: 1px solid var(--input-border);
         }
 
         .btn-settings:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--bg-tertiary);
         }
 
         .btn-logout {
@@ -128,15 +191,62 @@
             display: grid;
             grid-template-columns: 320px 1fr 280px;
             height: calc(100vh - 72px);
+            transition: grid-template-columns 0.3s ease;
+        }
+
+        .main-container.hide-left {
+            grid-template-columns: 0px 1fr 280px;
+        }
+
+        .main-container.hide-right {
+            grid-template-columns: 320px 1fr 0px;
+        }
+
+        .main-container.hide-both {
+            grid-template-columns: 0px 1fr 0px;
         }
 
         /* Left Sidebar - Controls */
         .left-sidebar {
-            background: rgba(18, 18, 18, 0.95);
+            background: var(--bg-secondary);
             backdrop-filter: blur(20px);
-            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            border-right: 1px solid var(--border-color);
             padding: 20px;
             overflow-y: auto;
+            overflow-x: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .main-container.hide-left .left-sidebar {
+            width: 0;
+            padding: 0;
+            opacity: 0;
+        }
+
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .minimize-btn {
+            width: 28px;
+            height: 28px;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .minimize-btn:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--accent-color);
         }
 
         .section-title {
@@ -144,7 +254,7 @@
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--text-muted);
             margin-bottom: 16px;
         }
 
@@ -156,32 +266,32 @@
             display: block;
             font-size: 13px;
             font-weight: 500;
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--text-secondary);
             margin-bottom: 8px;
         }
 
         .form-group input, .form-group select {
             width: 100%;
             padding: 10px 12px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
             border-radius: 8px;
-            color: #ffffff;
+            color: var(--text-primary);
             font-size: 14px;
             transition: all 0.3s ease;
         }
 
         .form-group input:focus, .form-group select:focus {
             outline: none;
-            background: rgba(255, 255, 255, 0.08);
-            border-color: #76b947;
+            background: var(--input-bg);
+            border-color: var(--accent-color);
             box-shadow: 0 0 0 3px rgba(118, 185, 71, 0.1);
         }
 
         .btn-analyze {
             width: 100%;
             padding: 12px;
-            background: linear-gradient(135deg, #76b947 0%, #34c759 100%);
+            background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-hover) 100%);
             color: white;
             border: none;
             border-radius: 8px;
@@ -208,7 +318,7 @@
         .filters-section {
             margin-top: 24px;
             padding-top: 24px;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            border-top: 1px solid var(--border-color);
         }
 
         .checkbox-group {
@@ -226,20 +336,26 @@
 
         .checkbox-group label {
             font-size: 13px;
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--text-secondary);
             cursor: pointer;
         }
 
         /* Center - Graph Visualization */
         .graph-container {
             position: relative;
-            background: #0a0a0a;
+            background: var(--bg-primary);
+            height: 100%;
+            overflow: hidden;
         }
 
         #network {
-            width: 100%;
-            height: 100%;
+            width: 100% !important;
+            height: 100% !important;
             background: radial-gradient(circle at 20% 50%, rgba(118, 185, 71, 0.03) 0%, transparent 50%);
+        }
+
+        body.light-mode #network {
+            background: radial-gradient(circle at 20% 50%, rgba(118, 185, 71, 0.05) 0%, transparent 50%);
         }
 
         .graph-overlay {
@@ -250,6 +366,7 @@
             display: flex;
             justify-content: space-between;
             pointer-events: none;
+            z-index: 10;
         }
 
         .stats-cards {
@@ -259,26 +376,27 @@
         }
 
         .stat-card {
-            background: rgba(18, 18, 18, 0.95);
+            background: var(--card-bg);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border-color);
             border-radius: 12px;
             padding: 16px 20px;
             min-width: 140px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
         .stat-label {
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--text-muted);
             margin-bottom: 6px;
         }
 
         .stat-value {
             font-size: 28px;
             font-weight: 700;
-            background: linear-gradient(135deg, #76b947 0%, #34c759 100%);
+            background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-hover) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -292,29 +410,83 @@
         .control-btn {
             width: 36px;
             height: 36px;
-            background: rgba(18, 18, 18, 0.95);
+            background: var(--card-bg);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border-color);
             border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .control-btn:hover {
             background: rgba(118, 185, 71, 0.2);
-            border-color: #76b947;
+            border-color: var(--accent-color);
+            transform: translateY(-2px);
+        }
+
+        /* Sidebar Toggle Buttons */
+        .sidebar-toggle {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 32px;
+            height: 64px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0 8px 8px 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            z-index: 20;
+            transition: all 0.3s ease;
+            pointer-events: all;
+        }
+
+        .sidebar-toggle.left {
+            left: 0;
+            border-left: none;
+        }
+
+        .sidebar-toggle.right {
+            right: 0;
+            border-right: none;
+            border-radius: 8px 0 0 8px;
+        }
+
+        .main-container.hide-left .sidebar-toggle.left {
+            left: 0;
+        }
+
+        .main-container.hide-right .sidebar-toggle.right {
+            right: 0;
+        }
+
+        .sidebar-toggle:hover {
+            background: var(--accent-color);
+            color: white;
         }
 
         /* Right Sidebar - Legend & Info */
         .right-sidebar {
-            background: rgba(18, 18, 18, 0.95);
+            background: var(--bg-secondary);
             backdrop-filter: blur(20px);
-            border-left: 1px solid rgba(255, 255, 255, 0.05);
+            border-left: 1px solid var(--border-color);
             padding: 20px;
             overflow-y: auto;
+            overflow-x: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .main-container.hide-right .right-sidebar {
+            width: 0;
+            padding: 0;
+            opacity: 0;
         }
 
         .legend-item {
@@ -323,20 +495,20 @@
             gap: 12px;
             margin-bottom: 12px;
             padding: 10px;
-            background: rgba(255, 255, 255, 0.02);
+            background: var(--bg-tertiary);
             border-radius: 8px;
             transition: all 0.3s ease;
         }
 
         .legend-item:hover {
-            background: rgba(255, 255, 255, 0.05);
+            background: var(--input-bg);
         }
 
         .legend-color {
             width: 32px;
             height: 32px;
             border-radius: 6px;
-            border: 2px solid rgba(255, 255, 255, 0.1);
+            border: 2px solid var(--border-color);
         }
 
         .legend-info {
@@ -346,12 +518,12 @@
         .legend-name {
             font-size: 13px;
             font-weight: 600;
-            color: #ffffff;
+            color: var(--text-primary);
         }
 
         .legend-count {
             font-size: 11px;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--text-muted);
         }
 
         /* Loading */
@@ -377,7 +549,7 @@
             width: 60px;
             height: 60px;
             border: 4px solid rgba(255, 255, 255, 0.1);
-            border-top-color: #76b947;
+            border-top-color: var(--accent-color);
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
             margin: 0 auto 20px;
@@ -429,11 +601,11 @@
         }
 
         ::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.02);
+            background: var(--bg-tertiary);
         }
 
         ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--input-bg);
             border-radius: 4px;
         }
 
@@ -453,6 +625,10 @@
             </div>
         </div>
         <div class="header-actions">
+            <!-- Theme Toggle -->
+            <div class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+                <div class="theme-toggle-slider">🌙</div>
+            </div>
             <div class="status-badge">
                 <span class="status-dot"></span>
                 Connected
@@ -478,10 +654,13 @@
     </div>
 
     <!-- Main Container -->
-    <div class="main-container">
+    <div class="main-container" id="mainContainer">
         <!-- Left Sidebar -->
         <div class="left-sidebar">
-            <div class="section-title">🎯 Analysis Parameters</div>
+            <div class="sidebar-header">
+                <div class="section-title">🎯 Analysis Parameters</div>
+                <div class="minimize-btn" onclick="toggleSidebar('left')" title="Minimize">◀</div>
+            </div>
 
             <div class="form-group">
                 <label>Agent ID</label>
@@ -536,6 +715,14 @@
         <div class="graph-container">
             <div id="network"></div>
 
+            <!-- Sidebar Toggle Buttons -->
+            <div class="sidebar-toggle left" onclick="toggleSidebar('left')" title="Toggle Left Panel">
+                ▶
+            </div>
+            <div class="sidebar-toggle right" onclick="toggleSidebar('right')" title="Toggle Right Panel">
+                ◀
+            </div>
+
             <div class="graph-overlay">
                 <div class="stats-cards">
                     <div class="stat-card">
@@ -562,7 +749,10 @@
 
         <!-- Right Sidebar -->
         <div class="right-sidebar">
-            <div class="section-title">🎨 Process Legend</div>
+            <div class="sidebar-header">
+                <div class="section-title">🎨 Process Legend</div>
+                <div class="minimize-btn" onclick="toggleSidebar('right')" title="Minimize">▶</div>
+            </div>
             <div id="legendContainer"></div>
         </div>
     </div>
