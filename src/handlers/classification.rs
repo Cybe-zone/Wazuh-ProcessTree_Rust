@@ -15,7 +15,7 @@ pub async fn get_all_classifications(
         .map_err(|_| AppError::Unauthorized)?
         .ok_or(AppError::Unauthorized)?;
 
-    let classification_service = ClassificationService::new(db.clone());
+    let classification_service = ClassificationService::new(db.into_inner());
     let classifications = classification_service.get_all_classifications().await?;
 
     Ok(HttpResponse::Ok().json(ApiResponse::success(classifications)))
@@ -48,8 +48,8 @@ pub async fn create_classification(
         .map_err(|_| AppError::Unauthorized)?
         .ok_or(AppError::Unauthorized)?;
 
-    let classification_service = ClassificationService::new(db.clone());
-    
+    let classification_service = ClassificationService::new(db.clone().into_inner());
+
     let id = classification_service.create_classification(
         data.name.clone(),
         data.patterns.clone(),
@@ -87,8 +87,8 @@ pub async fn update_classification(
         .map_err(|_| AppError::Unauthorized)?
         .ok_or(AppError::Unauthorized)?;
 
-    let classification_service = ClassificationService::new(db.clone());
-    
+    let classification_service = ClassificationService::new(db.clone().into_inner());
+
     classification_service.update_classification(
         &id,
         data.name.clone(),
@@ -126,8 +126,8 @@ pub async fn delete_classification(
         .map_err(|_| AppError::Unauthorized)?
         .ok_or(AppError::Unauthorized)?;
 
-    let classification_service = ClassificationService::new(db.clone());
-    
+    let classification_service = ClassificationService::new(db.clone().into_inner());
+
     // Get classification name before deletion for audit
     let classification = db.get_classification(&id)
         .await?
@@ -160,7 +160,7 @@ pub async fn initialize_defaults(
         .map_err(|_| AppError::Unauthorized)?
         .ok_or(AppError::Unauthorized)?;
 
-    let classification_service = ClassificationService::new(db.clone());
+    let classification_service = ClassificationService::new(db.into_inner());
     classification_service.initialize_default_classifications().await?;
 
     tracing::info!("Initialized default classifications");

@@ -1,14 +1,14 @@
-use actix_web::{web, App, HttpServer, middleware};
+use actix_web::{web, App, HttpServer};
 use actix_session::{SessionMiddleware, storage::CookieSessionStore};
 use actix_files::Files;
 use actix_cors::Cors;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use std::time::Duration;
 
 mod config;
 mod models;
 mod handlers;
 mod services;
+mod middleware;
 use crate::middleware as custom_middleware;
 mod error;
 mod utils;
@@ -74,8 +74,8 @@ async fn main() -> std::io::Result<()> {
             )            
             // Middlewares
             .wrap(cors)
-            .wrap(middleware::Logger::default())
-            .wrap(middleware::Compress::default())
+            .wrap(actix_web::middleware::Logger::default())
+            .wrap(actix_web::middleware::Compress::default())
             .wrap(custom_middleware::SecurityHeaders)
             // Static files
             .service(Files::new("/static", "./static"))

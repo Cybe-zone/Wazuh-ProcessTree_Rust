@@ -6,6 +6,7 @@ use crate::services::wazuh::WazuhClient;
 use crate::services::process_tree::ProcessTreeBuilder;
 use crate::services::classification::ClassificationService;
 use crate::error::AppError;
+use std::sync::Arc;
 
 
 pub async fn analyze_process_tree(
@@ -70,7 +71,7 @@ pub async fn analyze_process_tree(
     tracing::info!("Retrieved {} events for agent {}", events.len(), query.agent_id);
 
     // Build process tree
-    let classification_service = ClassificationService::new(db.clone());
+    let classification_service = ClassificationService::new(db.into_inner());
     let tree_builder = ProcessTreeBuilder::new(Arc::new(classification_service));
     
     let process_tree = tree_builder.build_tree(events).await?;
@@ -171,7 +172,7 @@ pub async fn get_agent_info(
     }
 
     // Create Wazuh client
-    let wazuh_client = WazuhClient::new(
+    let _wazuh_client = WazuhClient::new(
         &db_session.indexer_host,
         db_session.indexer_port as u16,
         db_session.indexer_username.clone(),
