@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WPTV 3.0 - Process Intelligence Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0a0a;
+            color: #ffffff;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(18, 18, 18, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(118, 185, 71, 0.2);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #76b947 0%, #34c759 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .logo-text h1 {
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #76b947 0%, #34c759 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-text p {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            background: rgba(118, 185, 71, 0.15);
+            border: 1px solid rgba(118, 185, 71, 0.3);
+            border-radius: 6px;
+            font-size: 12px;
+            color: #76b947;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            background: #76b947;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-settings {
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-settings:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-logout {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-logout:hover {
+            background: rgba(239, 68, 68, 0.25);
+        }
+
+        /* Main Layout */
+        .main-container {
+            display: grid;
+            grid-template-columns: 320px 1fr 280px;
+            height: calc(100vh - 72px);
+        }
+
+        /* Left Sidebar - Controls */
+        .left-sidebar {
+            background: rgba(18, 18, 18, 0.95);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 8px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.08);
+            border-color: #76b947;
+            box-shadow: 0 0 0 3px rgba(118, 185, 71, 0.1);
+        }
+
+        .btn-analyze {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #76b947 0%, #34c759 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-analyze:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(118, 185, 71, 0.4);
+        }
+
+        .btn-analyze:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Filters Section */
+        .filters-section {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+        }
+
+        /* Center - Graph Visualization */
+        .graph-container {
+            position: relative;
+            background: #0a0a0a;
+        }
+
+        #network {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 50%, rgba(118, 185, 71, 0.03) 0%, transparent 50%);
+        }
+
+        .graph-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+        }
+
+        .stats-cards {
+            display: flex;
+            gap: 12px;
+            pointer-events: all;
+        }
+
+        .stat-card {
+            background: rgba(18, 18, 18, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 16px 20px;
+            min-width: 140px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 6px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #76b947 0%, #34c759 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .graph-controls {
+            display: flex;
+            gap: 8px;
+            pointer-events: all;
+        }
+
+        .control-btn {
+            width: 36px;
+            height: 36px;
+            background: rgba(18, 18, 18, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background: rgba(118, 185, 71, 0.2);
+            border-color: #76b947;
+        }
+
+        /* Right Sidebar - Legend & Info */
+        .right-sidebar {
+            background: rgba(18, 18, 18, 0.95);
+            backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .legend-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .legend-color {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .legend-info {
+            flex: 1;
+        }
+
+        .legend-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .legend-count {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Loading */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-content {
+            text-align: center;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #76b947;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Alert */
+        .alert {
+            position: fixed;
+            top: 90px;
+            right: 24px;
+            max-width: 400px;
+            padding: 16px 20px;
+            border-radius: 12px;
+            display: none;
+            z-index: 10000;
+            animation: slideIn 0.3s ease;
+            backdrop-filter: blur(20px);
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(100px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+
+        .alert-success {
+            background: rgba(52, 199, 89, 0.15);
+            border: 1px solid rgba(52, 199, 89, 0.3);
+            color: #86efac;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(118, 185, 71, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo-section">
+            <div class="logo-icon">🔍</div>
+            <div class="logo-text">
+                <h1>WPTV 3.0</h1>
+                <p>Process Intelligence Platform</p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <div class="status-badge">
+                <span class="status-dot"></span>
+                Connected
+            </div>
+            <button class="btn btn-settings" onclick="window.location.href='/settings'">
+                ⚙️ Settings
+            </button>
+            <button class="btn btn-logout" onclick="logout()">
+                🚪 Logout
+            </button>
+        </div>
+    </div>
+
+    <!-- Alert -->
+    <div id="alert" class="alert"></div>
+
+    <!-- Loading -->
+    <div class="loading-overlay" id="loading">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p class="loading-text">Analyzing process tree...</p>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Left Sidebar -->
+        <div class="left-sidebar">
+            <div class="section-title">🎯 Analysis Parameters</div>
+
+            <div class="form-group">
+                <label>Agent ID</label>
+                <input type="text" id="agentId" placeholder="001">
+            </div>
+
+            <div class="form-group">
+                <label>Start Time</label>
+                <input type="datetime-local" id="startTime">
+            </div>
+
+            <div class="form-group">
+                <label>End Time</label>
+                <input type="datetime-local" id="endTime">
+            </div>
+
+            <button class="btn-analyze" onclick="analyzeAgent()">
+                🔍 Analyze Process Tree
+            </button>
+
+            <!-- Filters -->
+            <div class="filters-section">
+                <div class="section-title">🔧 Filters</div>
+
+                <div class="form-group">
+                    <label>Process Name</label>
+                    <input type="text" id="filterProcess" placeholder="e.g., chrome.exe">
+                </div>
+
+                <div class="form-group">
+                    <label>User</label>
+                    <input type="text" id="filterUser" placeholder="e.g., Administrator">
+                </div>
+
+                <div class="form-group">
+                    <label>Command Line Contains</label>
+                    <input type="text" id="filterCmd" placeholder="e.g., powershell">
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="excludeSystem">
+                    <label for="excludeSystem">Exclude System Processes</label>
+                </div>
+
+                <button class="btn-analyze" style="margin-top: 16px; background: rgba(59, 130, 246, 0.8);" onclick="applyFilters()">
+                    Apply Filters
+                </button>
+            </div>
+        </div>
+
+        <!-- Center - Graph -->
+        <div class="graph-container">
+            <div id="network"></div>
+
+            <div class="graph-overlay">
+                <div class="stats-cards">
+                    <div class="stat-card">
+                        <div class="stat-label">Processes</div>
+                        <div class="stat-value" id="totalProcesses">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Suspicious</div>
+                        <div class="stat-value" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;" id="suspiciousCount">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Orphans</div>
+                        <div class="stat-value" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;" id="orphanCount">0</div>
+                    </div>
+                </div>
+
+                <div class="graph-controls">
+                    <div class="control-btn" onclick="fitNetwork()" title="Fit">📐</div>
+                    <div class="control-btn" onclick="exportData('json')" title="Export JSON">💾</div>
+                    <div class="control-btn" onclick="exportData('csv')" title="Export CSV">📊</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="right-sidebar">
+            <div class="section-title">🎨 Process Legend</div>
+            <div id="legendContainer"></div>
+        </div>
+    </div>
+
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

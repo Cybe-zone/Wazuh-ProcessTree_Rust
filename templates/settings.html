@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WPTV 3.0 - Settings</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0a0a;
+            color: #ffffff;
+        }
+
+        .header {
+            background: rgba(18, 18, 18, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(118, 185, 71, 0.2);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #76b947 0%, #34c759 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-back {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 24px;
+        }
+
+        .page-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #76b947 0%, #34c759 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .page-subtitle {
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 32px;
+        }
+
+        .section {
+            background: rgba(18, 18, 18, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #76b947 0%, #34c759 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(118, 185, 71, 0.4);
+        }
+
+        .classification-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+        }
+
+        .classification-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .classification-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: #76b947;
+        }
+
+        .classification-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .color-preview {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .classification-name {
+            flex: 1;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .classification-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .icon-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .patterns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 12px;
+        }
+
+        .pattern-tag {
+            padding: 4px 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .priority-badge {
+            padding: 4px 8px;
+            background: rgba(118, 185, 71, 0.15);
+            border: 1px solid rgba(118, 185, 71, 0.3);
+            border-radius: 4px;
+            font-size: 11px;
+            color: #76b947;
+            font-weight: 600;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: rgba(18, 18, 18, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 8px;
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .color-picker-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+
+        .btn-cancel {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .alert {
+            position: fixed;
+            top: 90px;
+            right: 24px;
+            max-width: 400px;
+            padding: 16px 20px;
+            border-radius: 12px;
+            display: none;
+            z-index: 10001;
+        }
+
+        .alert-success {
+            background: rgba(52, 199, 89, 0.15);
+            border: 1px solid rgba(52, 199, 89, 0.3);
+            color: #86efac;
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo-section">
+            <div class="logo-icon">⚙️</div>
+            <div>
+                <h1 style="font-size: 18px; font-weight: 700;">Settings</h1>
+                <p style="font-size: 11px; color: rgba(255,255,255,0.5);">Process Classification Management</p>
+            </div>
+        </div>
+        <button class="btn btn-back" onclick="window.location.href='/dashboard'">
+            ← Back to Dashboard
+        </button>
+    </div>
+
+    <div id="alert" class="alert"></div>
+
+    <div class="container">
+        <h1 class="page-title">Process Classifications</h1>
+        <p class="page-subtitle">Manage how processes are categorized and displayed in the process tree</p>
+
+        <div class="section">
+            <div class="section-header">
+                <div class="section-title">🎨 Custom Classifications</div>
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn-primary" onclick="initializeDefaults()">
+                        📦 Load Defaults
+                    </button>
+                    <button class="btn-primary" onclick="openModal('create')">
+                        ➕ Add Classification
+                    </button>
+                </div>
+            </div>
+
+            <div class="classification-grid" id="classificationsGrid">
+                <!-- Classifications will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-header" id="modalTitle">Add Classification</div>
+
+            <form id="classificationForm">
+                <input type="hidden" id="classificationId">
+
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="name" required placeholder="e.g., Database Tools">
+                </div>
+
+                <div class="form-group">
+                    <label>Patterns (comma-separated)</label>
+                    <textarea id="patterns" required placeholder="mysql, postgres, mongodb, sqlserver"></textarea>
+                </div>
+
+                <div class="color-picker-group">
+                    <div class="form-group">
+                        <label>Background Color</label>
+                        <input type="color" id="colorBg" value="#3b82f6">
+                    </div>
+                    <div class="form-group">
+                        <label>Border Color</label>
+                        <input type="color" id="colorBorder" value="#2563eb">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Priority (higher = checked first)</label>
+                    <input type="number" id="priority" value="50" min="0" max="200">
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Classification</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let classifications = [];
+        let currentMode = 'create';
+
+        // Load classifications on page load
+        document.addEventListener('DOMContentLoaded', loadClassifications);
+
+        async function loadClassifications() {
+            try {
+                const response = await fetch('/api/classifications');
+                const data = await response.json();
+
+                if (data.success) {
+                    classifications = data.data;
+                    renderClassifications();
+                }
+            } catch (error) {
+                console.error('Failed to load classifications:', error);
+                showAlert('Failed to load classifications', 'error');
+            }
+        }
+
+        function renderClassifications() {
+            const grid = document.getElementById('classificationsGrid');
+            grid.innerHTML = '';
+
+            classifications.forEach(classification => {
+                const patterns = JSON.parse(classification.patterns);
+
+                const card = document.createElement('div');
+                card.className = 'classification-card';
+                card.innerHTML = `
+                    <div class="classification-header">
+                        <div class="color-preview" style="background: ${classification.color_bg}; border-color: ${classification.color_border};"></div>
+                        <div class="classification-name">${classification.name}</div>
+                        <div class="priority-badge">P${classification.priority}</div>
+                    </div>
+                    <div class="classification-actions">
+                        <div class="icon-btn" onclick="editClassification('${classification.id}')" title="Edit">✏️</div>
+                        <div class="icon-btn" onclick="deleteClassification('${classification.id}')" title="Delete">🗑️</div>
+                    </div>
+                    <div class="patterns">
+                        ${patterns.map(p => `<span class="pattern-tag">${p}</span>`).join('')}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function openModal(mode, classificationId = null) {
+            currentMode = mode;
+            const modal = document.getElementById('modal');
+            const form = document.getElementById('classificationForm');
+
+            if (mode === 'create') {
+                document.getElementById('modalTitle').textContent = 'Add Classification';
+                form.reset();
+                document.getElementById('classificationId').value = '';
+            } else if (mode === 'edit' && classificationId) {
+                const classification = classifications.find(c => c.id === classificationId);
+                if (classification) {
+                    document.getElementById('modalTitle').textContent = 'Edit Classification';
+                    document.getElementById('classificationId').value = classification.id;
+                    document.getElementById('name').value = classification.name;
+                    document.getElementById('patterns').value = JSON.parse(classification.patterns).join(', ');
+                    document.getElementById('colorBg').value = classification.color_bg;
+                    document.getElementById('colorBorder').value = classification.color_border;
+                    document.getElementById('priority').value = classification.priority;
+                }
+            }
+
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        document.getElementById('classificationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('classificationId').value;
+            const name = document.getElementById('name').value.trim();
+            const patternsText = document.getElementById('patterns').value;
+            const patterns = patternsText.split(',').map(p => p.trim()).filter(p => p);
+            const colorBg = document.getElementById('colorBg').value;
+            const colorBorder = document.getElementById('colorBorder').value;
+            const priority = parseInt(document.getElementById('priority').value);
+
+            const payload = {
+                name,
+                patterns,
+                color_bg: colorBg,
+                color_border: colorBorder,
+                priority,
+                enabled: true
+            };
+
+            try {
+                let response;
+                if (currentMode === 'create') {
+                    response = await fetch('/api/classifications', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                } else {
+                    response = await fetch(`/api/classifications/${id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert(`Classification ${currentMode === 'create' ? 'created' : 'updated'} successfully`, 'success');
+                    closeModal();
+                    loadClassifications();
+                } else {
+                    throw new Error(data.error || 'Operation failed');
+                }
+            } catch (error) {
+                showAlert(error.message, 'error');
+            }
+        });
+
+        function editClassification(id) {
+            openModal('edit', id);
+        }
+
+        async function deleteClassification(id) {
+            if (!confirm('Are you sure you want to delete this classification?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/classifications/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert('Classification deleted successfully', 'success');
+                    loadClassifications();
+                } else {
+                    throw new Error(data.error || 'Delete failed');
+                }
+            } catch (error) {
+                showAlert(error.message, 'error');
+            }
+        }
+
+        async function initializeDefaults() {
+            if (!confirm('This will create default classifications if they don\'t exist. Continue?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/classifications/defaults', {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert('Default classifications initialized', 'success');
+                    loadClassifications();
+                } else {
+                    throw new Error(data.error || 'Initialization failed');
+                }
+            } catch (error) {
+                showAlert(error.message, 'error');
+            }
+        }
+
+        function showAlert(message, type) {
+            const alert = document.getElementById('alert');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            alert.style.display = 'block';
+
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+[package]
+name = "wazuh-process-tree-viewer"
+version = "3.0.0"
+edition = "2021"
+authors = ["WPTV Team"]
+description = "Enterprise-grade forensic visualization tool for Wazuh"
+
+[dependencies]
+# Web Framework
+actix-web = "4.4"
+actix-session = { version = "0.8", features = ["cookie-session"] }
+actix-files = "0.6"
+actix-cors = "0.7"
+
+# Async Runtime
+tokio = { version = "1.35", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# HTTP Client
+reqwest = { version = "0.11", features = ["json", "rustls-tls"] }
+
+# Database
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "sqlite"] }
+
+# Authentication & Security
+argon2 = "0.5"
+uuid = { version = "1.6", features = ["v4", "serde"] }
+jsonwebtoken = "9.2"
+base64 = "0.22"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-actix-web = "0.7"
+
+# Configuration
+config = "0.13"
+dotenvy = "0.15"
+
+# Templates
+tera = "1.19"
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Rate limiting
+governor = "0.6"
+
+# Caching
+moka = { version = "0.12", features = ["future"] }
+
+
+# Random
+rand = "0.8"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
