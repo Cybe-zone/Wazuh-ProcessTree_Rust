@@ -89,8 +89,12 @@ async fn main() -> std::io::Result<()> {
             .wrap(actix_web::middleware::Logger::default())
             .wrap(actix_web::middleware::Compress::default())
             .wrap(custom_middleware::SecurityHeaders)
-            // Static files
-            .service(Files::new("/static", "./static"))
+            // Static files with proper MIME types
+            .service(
+                Files::new("/static", "./static")
+                    .use_last_modified(true)
+                    .prefer_utf8(true)
+            )
             // API routes
             .configure(handlers::configure_routes)
     })
