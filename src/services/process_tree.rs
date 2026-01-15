@@ -1,4 +1,4 @@
-use crate::models::{ProcessEvent, ProcessNode, ProcessEdge, ProcessTree, OrphanProcess, NodeColor, NodeFont, EdgeColor};
+use crate::models::{ProcessEvent, ProcessNode, ProcessEdge, ProcessTree, OrphanProcess, NodeColor, EdgeColor};
 use crate::services::classification::ClassificationService;
 use crate::error::AppError;
 use std::collections::{HashMap, HashSet};
@@ -46,19 +46,22 @@ impl ProcessTreeBuilder {
                         }
                     ));
 
+                // Parse process_id and parent_id as i64
+                let pid_i64 = process_id.parse::<i64>().unwrap_or(0);
+                let parent_id_i64 = event.parent_process_id.parse::<i64>().ok()
+                    .filter(|&p| p != 0);
+
                 let node = ProcessNode {
                     id: process_id.clone(),
                     label: event.process_name.clone(),
-                    title: self.create_tooltip(event),
-                    process_path: event.process_path.clone(),
+                    process_id: pid_i64,
+                    parent_id: parent_id_i64,
+                    process_name: event.process_name.clone(),
                     command_line: event.command_line.clone(),
                     user: event.user.clone(),
                     timestamp: event.timestamp.clone(),
-                    parent_id: event.parent_process_id.clone(),
-                    color,
-                    shape: "box".to_string(),
-                    font: NodeFont { size: 14 },
                     classification,
+                    color,
                 };
 
                 processes.insert(process_id.clone(), node);
@@ -78,21 +81,23 @@ impl ProcessTreeBuilder {
         let mut edges = Vec::new();
 
         for (_, node) in &processes {
-            let parent_id = &node.parent_id;
-            if !parent_id.is_empty() && parent_id != "0" {
-                let edge_key = (parent_id.clone(), node.id.clone());
-                if !processed_edges.contains(&edge_key) {
-                    edges.push(ProcessEdge {
-                        from: parent_id.clone(),
-                        to: node.id.clone(),
-                        arrows: "to".to_string(),
-                        color: EdgeColor {
-                            color: "#848484".to_string(),
-                            highlight: "#76b947".to_string(),
-                        },
-                        width: 2,
-                    });
-                    processed_edges.insert(edge_key);
+            if let Some(parent_id_i64) = node.parent_id {
+                let parent_id_str = parent_id_i64.to_string();
+                if processes.contains_key(&parent_id_str) {
+                    let edge_key = (parent_id_str.clone(), node.id.clone());
+                    if !processed_edges.contains(&edge_key) {
+                        edges.push(ProcessEdge {
+                            from: parent_id_str.clone(),
+                            to: node.id.clone(),
+                            arrows: "to".to_string(),
+                            color: EdgeColor {
+                                color: "#848484".to_string(),
+                                highlight: "#76b947".to_string(),
+                            },
+                            width: 2,
+                        });
+                        processed_edges.insert(edge_key);
+                    }
                 }
             }
         }
@@ -154,14 +159,17 @@ impl ProcessTreeBuilder {
     fn find_orphans(&self, processes: &HashMap<String, ProcessNode>) -> Vec<OrphanProcess> {
         let mut orphans = Vec::new();
 
-        for (pid, node) in processes {
-            let parent_id = &node.parent_id;
-            if !parent_id.is_empty() && parent_id != "0" && !processes.contains_key(parent_id) {
-                orphans.push(OrphanProcess {
-                    pid: pid.clone(),
-                    name: node.label.clone(),
-                    missing_parent: parent_id.clone(),
-                });
+        for (_, node) in processes {
+            if let Some(parent_id_i64) = node.parent_id {
+                let parent_id_str = parent_id_i64.to_string();
+                if !processes.contains_key(&parent_id_str) {
+                    orphans.push(OrphanProcess {
+                        process_id: node.process_id,
+                        process_name: node.process_name.clone(),
+                        parent_id: Some(parent_id_i64),
+                        timestamp: node.timestamp.clone(),
+                    });
+                }
             }
         }
 
@@ -182,9 +190,11 @@ impl ProcessTreeBuilder {
             chain.insert(0, current_id.clone());
             visited.insert(current_id.clone());
 
-            current_id = process.parent_id.clone();
-            if current_id.is_empty() || current_id == "0" {
-                break;
+            match process.parent_id {
+                Some(parent_id_i64) => {
+                    current_id = parent_id_i64.to_string();
+                }
+                None => break,
             }
         }
 
@@ -199,7 +209,9 @@ impl ProcessTreeBuilder {
 
         for node in &tree.nodes {
             unique_users.insert(node.user.clone());
-            unique_parents.insert(node.parent_id.clone());
+            if let Some(parent_id) = node.parent_id {
+                unique_parents.insert(parent_id);
+            }
 
             if node.classification == "Suspicious" {
                 suspicious_count += 1;

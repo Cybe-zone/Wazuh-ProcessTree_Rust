@@ -86,10 +86,28 @@ pub async fn analyze_process_tree(
         process_tree.orphans.len()
     );
 
-    Ok(HttpResponse::Ok().json(ApiResponse::success(serde_json::json!({
+    // Debug logging to identify type mismatches
+    if !process_tree.nodes.is_empty() {
+        tracing::debug!("First node sample: {:?}", &process_tree.nodes[0]);
+    }
+    if !process_tree.orphans.is_empty() {
+        tracing::debug!("First orphan sample: {:?}", &process_tree.orphans[0]);
+    }
+
+    let response_json = serde_json::json!({
         "tree": process_tree,
         "statistics": statistics
-    }))))
+    });
+
+    tracing::debug!("Response JSON (first 500 chars): {}",
+        serde_json::to_string(&response_json)
+            .unwrap_or_default()
+            .chars()
+            .take(500)
+            .collect::<String>()
+    );
+
+    Ok(HttpResponse::Ok().json(ApiResponse::success(response_json)))
 }
 
 pub async fn export_process_tree(
