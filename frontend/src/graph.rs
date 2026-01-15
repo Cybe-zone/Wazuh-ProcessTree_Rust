@@ -65,6 +65,7 @@ impl GraphRenderer {
     }
 
     pub fn set_data(&mut self, nodes: Vec<ProcessNode>, edges: Vec<ProcessEdge>) {
+        log::info!("set_data called - this will reset zoom!");
         // Build hierarchy layout
         let positions = self.layout_hierarchy(&nodes, &edges);
         self.nodes = positions;
@@ -91,9 +92,14 @@ impl GraphRenderer {
             let graph_width = max_x - min_x;
             let graph_height = max_y - min_y;
 
-            // Center on first render
-            self.offset_x = (canvas_width - graph_width) / 2.0 - min_x;
-            self.offset_y = (canvas_height - graph_height) / 2.0 - min_y;
+            // Center on first render ONLY - don't reset if already set
+            if self.scale == 1.0 {
+                log::info!("First time centering graph");
+                self.offset_x = (canvas_width - graph_width) / 2.0 - min_x;
+                self.offset_y = (canvas_height - graph_height) / 2.0 - min_y;
+            } else {
+                log::info!("Keeping existing scale={} and offsets", self.scale);
+            }
         }
     }
 
@@ -468,6 +474,7 @@ impl GraphRenderer {
     }
 
     pub fn fit_view(&mut self) {
+        log::info!("fit_view called - resetting zoom");
         if self.nodes.is_empty() {
             return;
         }
@@ -496,6 +503,8 @@ impl GraphRenderer {
         let scale_x = (canvas_width - padding * 2.0) / graph_width;
         let scale_y = (canvas_height - padding * 2.0) / graph_height;
         self.scale = scale_x.min(scale_y).min(1.0);
+
+        log::info!("fit_view: set scale to {}", self.scale);
 
         // Center
         self.offset_x = (canvas_width - graph_width * self.scale) / 2.0 - min_x * self.scale;

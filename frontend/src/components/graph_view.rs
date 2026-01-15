@@ -20,6 +20,8 @@ pub struct GraphView {
     canvas_ref: NodeRef,
     renderer: Rc<RefCell<Option<GraphRenderer>>>,
     animation_handle: Option<Interval>,
+    last_data_hash: Option<usize>,
+    last_fit_view_trigger: bool,
 }
 
 pub enum Msg {
@@ -40,6 +42,8 @@ impl Component for GraphView {
             canvas_ref: NodeRef::default(),
             renderer: Rc::new(RefCell::new(None)),
             animation_handle: None,
+            last_data_hash: None,
+            last_fit_view_trigger: false,
         }
     }
 
@@ -147,19 +151,28 @@ impl Component for GraphView {
             ctx.link().send_message(Msg::CanvasReady);
         }
 
-        // Update data when tree_data changes
+        // Update data ONLY when tree_data actually changes
         if let Some(tree) = &ctx.props().tree_data {
-            if let Some(renderer) = self.renderer.borrow_mut().as_mut() {
-                renderer.set_data(tree.nodes.clone(), tree.edges.clone());
+            // Simple hash: use number of nodes as indicator of change
+            let current_hash = tree.nodes.len() * 1000 + tree.edges.len();
+
+            if self.last_data_hash != Some(current_hash) {
+                log::info!("Tree data changed - updating renderer");
+                if let Some(renderer) = self.renderer.borrow_mut().as_mut() {
+                    renderer.set_data(tree.nodes.clone(), tree.edges.clone());
+                }
+                self.last_data_hash = Some(current_hash);
             }
         }
 
-        // Handle fit view trigger
-        if ctx.props().fit_view_trigger {
+        // Handle fit view trigger ONLY when it changes from false to true
+        if ctx.props().fit_view_trigger && !self.last_fit_view_trigger {
+            log::info!("Fit view trigger activated");
             if let Some(renderer) = self.renderer.borrow_mut().as_mut() {
                 renderer.fit_view();
             }
         }
+        self.last_fit_view_trigger = ctx.props().fit_view_trigger;
 
         // Resize canvas if needed
         if let Some(canvas) = self.canvas_ref.cast::<HtmlCanvasElement>() {
