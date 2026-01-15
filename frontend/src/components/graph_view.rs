@@ -46,17 +46,20 @@ impl Component for GraphView {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::CanvasReady => {
+                log::info!("Canvas ready - initializing renderer");
                 if let Some(canvas) = self.canvas_ref.cast::<HtmlCanvasElement>() {
                     // Set canvas size to match container
                     if let Some(parent) = canvas.parent_element() {
                         let width = parent.client_width() as u32;
                         let height = parent.client_height() as u32;
+                        log::info!("Canvas size: {}x{}", width, height);
                         canvas.set_width(width);
                         canvas.set_height(height);
                     }
 
                     match GraphRenderer::new(canvas) {
                         Ok(renderer) => {
+                            log::info!("GraphRenderer created successfully");
                             *self.renderer.borrow_mut() = Some(renderer);
                             self.start_animation(ctx);
                         }
@@ -64,19 +67,25 @@ impl Component for GraphView {
                             log::error!("Failed to create renderer: {}", e);
                         }
                     }
+                } else {
+                    log::error!("Failed to cast canvas element");
                 }
                 false
             }
 
             Msg::MouseDown(event) => {
+                log::info!("GraphView: MouseDown event received");
                 if let Some(renderer) = self.renderer.borrow_mut().as_mut() {
                     let old_selected = renderer.get_selected_node().map(|n| n.id.clone());
                     renderer.handle_mouse_down(&event);
                     let new_selected = renderer.get_selected_node().map(|n| n.id.clone());
 
                     if old_selected != new_selected {
+                        log::info!("GraphView: Node selection changed");
                         ctx.props().on_node_select.emit(new_selected);
                     }
+                } else {
+                    log::warn!("GraphView: Renderer not initialized");
                 }
                 true
             }
@@ -89,6 +98,7 @@ impl Component for GraphView {
             }
 
             Msg::MouseUp(event) => {
+                log::info!("GraphView: MouseUp event received");
                 if let Some(renderer) = self.renderer.borrow_mut().as_mut() {
                     renderer.handle_mouse_up(&event);
                 }
@@ -96,8 +106,11 @@ impl Component for GraphView {
             }
 
             Msg::Wheel(event) => {
+                log::info!("GraphView: Wheel event received");
                 if let Some(renderer) = self.renderer.borrow_mut().as_mut() {
                     renderer.handle_wheel(&event);
+                } else {
+                    log::warn!("GraphView: Renderer not initialized for wheel event");
                 }
                 true
             }

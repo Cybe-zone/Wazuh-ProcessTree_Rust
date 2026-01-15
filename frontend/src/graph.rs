@@ -374,13 +374,17 @@ impl GraphRenderer {
         let x = event.offset_x() as f64;
         let y = event.offset_y() as f64;
 
+        log::info!("Mouse down at ({}, {})", x, y);
+
         // Check if clicking on a node
         let clicked_node = self.get_node_at(x, y);
 
         if clicked_node.is_some() {
+            log::info!("Clicked on node: {:?}", clicked_node);
             self.selected_node = clicked_node;
         } else {
             // Start dragging
+            log::info!("Starting drag from ({}, {})", x, y);
             self.is_dragging = true;
             self.drag_start = Point { x, y };
             self.last_mouse_pos = Point { x, y };
@@ -396,6 +400,8 @@ impl GraphRenderer {
             let dx = x - self.last_mouse_pos.x;
             let dy = y - self.last_mouse_pos.y;
 
+            log::info!("Dragging: dx={}, dy={}, new offset=({}, {})", dx, dy, self.offset_x + dx, self.offset_y + dy);
+
             self.offset_x += dx;
             self.offset_y += dy;
 
@@ -407,6 +413,7 @@ impl GraphRenderer {
     }
 
     pub fn handle_mouse_up(&mut self, _event: &MouseEvent) {
+        log::info!("Mouse up - stopping drag");
         self.is_dragging = false;
     }
 
@@ -417,6 +424,8 @@ impl GraphRenderer {
         let delta = event.delta_y();
         let zoom_factor = if delta < 0.0 { 1.1 } else { 0.9 };
 
+        log::info!("Wheel event: delta={}, zoom_factor={}, current_scale={}", delta, zoom_factor, self.scale);
+
         let mouse_x = event.offset_x() as f64;
         let mouse_y = event.offset_y() as f64;
 
@@ -424,6 +433,8 @@ impl GraphRenderer {
         let old_scale = self.scale;
         self.scale *= zoom_factor;
         self.scale = self.scale.clamp(0.1, 5.0);
+
+        log::info!("Zoom: old_scale={}, new_scale={}", old_scale, self.scale);
 
         let scale_change = self.scale / old_scale;
         self.offset_x = mouse_x - (mouse_x - self.offset_x) * scale_change;
