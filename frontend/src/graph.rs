@@ -37,6 +37,10 @@ pub struct GraphRenderer {
     // Selection
     selected_node: Option<String>,
     hovered_node: Option<String>,
+
+    // Performance optimization
+    last_render_time: f64,
+    frame_skip_counter: u32,
 }
 
 impl GraphRenderer {
@@ -61,6 +65,8 @@ impl GraphRenderer {
             last_mouse_pos: Point { x: 0.0, y: 0.0 },
             selected_node: None,
             hovered_node: None,
+            last_render_time: 0.0,
+            frame_skip_counter: 0,
         })
     }
 
@@ -238,6 +244,16 @@ impl GraphRenderer {
     }
 
     pub fn render(&mut self, is_light_mode: bool) {
+        // Skip frames when dragging to improve performance
+        if self.is_dragging {
+            self.frame_skip_counter += 1;
+            if self.frame_skip_counter % 2 != 0 {
+                return; // Skip every other frame during drag
+            }
+        } else {
+            self.frame_skip_counter = 0;
+        }
+
         let width = self.canvas.width() as f64;
         let height = self.canvas.height() as f64;
 
@@ -253,7 +269,13 @@ impl GraphRenderer {
         self.context.translate(self.offset_x, self.offset_y).ok();
         self.context.scale(self.scale, self.scale).ok();
 
-        // Draw edges first
+        // Calculate visible bounds for culling
+        let visible_min_x = -self.offset_x / self.scale - 100.0;
+        let visible_max_x = (width - self.offset_x) / self.scale + 100.0;
+        let visible_min_y = -self.offset_y / self.scale - 100.0;
+        let visible_max_y = (height - self.offset_y) / self.scale + 100.0;
+
+        // Draw edges first (with culling)
         let edge_color = if is_light_mode { "#999999" } else { "#666666" };
         self.context.set_stroke_style(&edge_color.into());
         self.context.set_line_width(2.0);
@@ -263,6 +285,13 @@ impl GraphRenderer {
                 self.nodes.iter().find(|n| n.node.id == edge.from),
                 self.nodes.iter().find(|n| n.node.id == edge.to),
             ) {
+                // Cull edges outside visible area
+                if (from.x > visible_max_x && to.x > visible_max_x) ||
+                   (from.x + from.width < visible_min_x && to.x + to.width < visible_min_x) ||
+                   (from.y > visible_max_y && to.y > visible_max_y) ||
+                   (from.y + from.height < visible_min_y && to.y + to.height < visible_min_y) {
+                    continue;
+                }
                 self.context.begin_path();
                 let from_x = from.x + from.width / 2.0;
                 let from_y = from.y + from.height;
@@ -287,10 +316,18 @@ impl GraphRenderer {
             }
         }
 
-        // Draw nodes
+        // Draw nodes (with culling)
         let text_color = if is_light_mode { "#1a1a1a" } else { "#ffffff" };
 
         for node_pos in &self.nodes {
+            // Cull nodes outside visible area
+            if node_pos.x > visible_max_x ||
+               node_pos.x + node_pos.width < visible_min_x ||
+               node_pos.y > visible_max_y ||
+               node_pos.y + node_pos.height < visible_min_y {
+                continue;
+            }
+
             let is_selected = self.selected_node.as_ref() == Some(&node_pos.node.id);
             let is_hovered = self.hovered_node.as_ref() == Some(&node_pos.node.id);
 

@@ -5,7 +5,7 @@ use wasm_bindgen::JsCast;
 
 use crate::api::ApiClient;
 use crate::models::*;
-use crate::components::{graph_view::GraphView, sidebar::Sidebar, details_panel::DetailsPanel, controls::Controls};
+use crate::components::{graph_view::GraphView, sidebar::Sidebar, details_panel::DetailsPanel, controls::Controls, timeline::Timeline};
 
 pub enum Msg {
     ToggleTheme,
@@ -25,6 +25,7 @@ pub enum Msg {
     LoadClassifications,
     ClassificationsLoaded(Result<Vec<ProcessClassification>, String>),
     OpenClassificationSettings,
+    ToggleTimeline,
 }
 
 #[derive(Clone, PartialEq)]
@@ -58,6 +59,7 @@ pub struct App {
     loading: bool,
     alert_message: Option<(String, AlertType)>,
     fit_view_trigger: bool,
+    timeline_visible: bool,
 }
 
 #[derive(Clone, PartialEq)]
@@ -147,6 +149,7 @@ impl Component for App {
             loading: false,
             alert_message: None,
             fit_view_trigger: false,
+            timeline_visible: false,
         }
     }
 
@@ -330,11 +333,16 @@ impl Component for App {
             }
 
             Msg::OpenClassificationSettings => {
-                // Navigate to classification settings (could open a modal or navigate to settings page)
+                // Navigate to admin panel
                 if let Some(window) = window() {
-                    window.alert_with_message("Classification settings: Coming soon! You can manage process classifications through the admin panel.").ok();
+                    window.location().set_href("/admin").ok();
                 }
                 false
+            }
+
+            Msg::ToggleTimeline => {
+                self.timeline_visible = !self.timeline_visible;
+                true
             }
         }
     }
@@ -365,6 +373,8 @@ impl Component for App {
                             on_node_select={ctx.link().callback(Msg::SelectNode)}
                             fit_view_trigger={self.fit_view_trigger}
                         />
+
+                        {self.render_timeline(ctx)}
                     </div>
 
                     {self.render_right_sidebar(ctx)}
@@ -672,6 +682,29 @@ impl App {
         self.alert_message = Some((message, alert_type));
         // Auto-hide after 5 seconds
         // We'd need to use a timeout here, but for simplicity we'll leave it visible
+    }
+
+    fn render_timeline(&self, ctx: &Context<Self>) -> Html {
+        if let Some(tree) = &self.tree_data {
+            html! {
+                <>
+                    <button
+                        class="timeline-toggle-btn"
+                        onclick={ctx.link().callback(|_| Msg::ToggleTimeline)}
+                        title={if self.timeline_visible { "Hide Timeline" } else { "Show Timeline" }}
+                    >
+                        {if self.timeline_visible { "⏱ Hide Timeline" } else { "⏱ Show Timeline" }}
+                    </button>
+
+                    <Timeline
+                        nodes={tree.nodes.clone()}
+                        is_visible={self.timeline_visible}
+                    />
+                </>
+            }
+        } else {
+            html! {}
+        }
     }
 
     fn filter_system_processes(&self, tree: &mut ProcessTree) {
