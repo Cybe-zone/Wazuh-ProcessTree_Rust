@@ -231,6 +231,7 @@ impl ProcessTreeBuilder {
             unique_users: unique_users.len(),
             unique_parents: unique_parents.len(),
             suspicious_count,
+            orphan_count: tree.orphans.len(),
             time_range_hours: 0.0, // To be calculated from timestamps
             top_processes,
         }

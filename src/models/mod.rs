@@ -214,6 +214,7 @@ pub struct ProcessStatistics {
     pub unique_users: usize,
     pub unique_parents: usize,
     pub suspicious_count: usize,
+    pub orphan_count: usize,
     pub time_range_hours: f64,
     pub top_processes: Vec<TopProcess>,
 }
