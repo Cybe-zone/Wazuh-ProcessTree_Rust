@@ -3,7 +3,7 @@
 ## Prerequisites
 - Rust 1.70+ installed
 - SQLite support
-- Trunk (WASM build tool): `cargo install trunk`
+- wasm-bindgen-cli: `cargo install wasm-bindgen-cli --version 0.2.106`
 - wasm32-unknown-unknown target: `rustup target add wasm32-unknown-unknown`
 
 ## Setup
