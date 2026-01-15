@@ -1,0 +1,11 @@
+[build]
+target = "index.html"
+dist = "../static/wasm"
+public_url = "/wasm/"
+
+[watch]
+ignore = ["../static/wasm"]
+
+[serve]
+port = 8080
+address = "127.0.0.1"

@@ -15,6 +15,8 @@ mod utils;
 
 use config::AppConfig;
 use services::database::DatabaseService;
+use services::classification::ClassificationService;
+use std::sync::Arc;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -42,7 +44,17 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("Failed to run migrations");
 
-    let db_data = web::Data::new(db);
+    let db_arc = Arc::new(db);
+    let db_data = web::Data::new(db_arc.clone());
+
+    // Initialize default classifications
+    tracing::info!("Initializing default process classifications...");
+    let classification_service = ClassificationService::new(db_arc.clone());
+    classification_service
+        .initialize_default_classifications()
+        .await
+        .expect("Failed to initialize default classifications");
+    tracing::info!("Default classifications loaded successfully");
 
     // Generate secure session key
     let secret_key = actix_web::cookie::Key::from(config.secret_key.as_bytes());

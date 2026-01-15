@@ -3,6 +3,8 @@
 ## Prerequisites
 - Rust 1.70+ installed
 - SQLite support
+- Trunk (WASM build tool): `cargo install trunk`
+- wasm32-unknown-unknown target: `rustup target add wasm32-unknown-unknown`
 
 ## Setup
 
@@ -19,16 +21,34 @@
    ```
 
 3. **Build the project**
+
+   **Option A: Build everything at once**
    ```bash
-   cargo build
+   ./build-all.sh
+   ```
+
+   **Option B: Build separately**
+   ```bash
+   # Build WASM frontend
+   ./build-frontend.sh
+
+   # Build backend
+   cargo build --release
    ```
 
 4. **Run the server**
    ```bash
-   cargo run
+   cargo run --release
    ```
 
 The server will start on `http://127.0.0.1:5443`
+
+## Frontend Architecture
+
+The application now uses a **Rust + WASM** frontend built with the Yew framework:
+- **Frontend**: Located in `frontend/` - Compiled to WebAssembly
+- **Backend**: Rust Actix-web server serving both API and WASM assets
+- **Graph Visualization**: Custom canvas-based renderer with optimized performance
 
 ## Testing
 

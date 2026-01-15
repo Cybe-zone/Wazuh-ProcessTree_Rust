@@ -4,3 +4,6 @@ Cargo.lock
 *.db
 *.db-shm
 *.db-wal
+/static/wasm/
+/frontend/target/
+/frontend/dist/

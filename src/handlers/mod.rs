@@ -55,7 +55,8 @@ async fn login_page() -> actix_web::Result<NamedFile> {
 }
 
 async fn dashboard_page() -> actix_web::Result<NamedFile> {
-    let path: PathBuf = "templates/dashboard.html".parse().unwrap();
+    // Serve the WASM frontend
+    let path: PathBuf = "static/wasm/index.html".parse().unwrap();
     Ok(NamedFile::open(path)?)
 }
 
