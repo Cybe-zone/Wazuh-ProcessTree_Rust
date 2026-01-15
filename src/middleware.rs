@@ -70,7 +70,7 @@ where
                 actix_web::http::header::HeaderName::from_static("content-security-policy"),
                 actix_web::http::header::HeaderValue::from_static(
                     "default-src 'self'; \
-                     script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; \
+                     script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdnjs.cloudflare.com; \
                      style-src 'self' 'unsafe-inline'; \
                      img-src 'self' data:; \
                      font-src 'self' data:; \
