@@ -613,7 +613,7 @@ body {
 /* Timeline */
 .timeline-toggle-btn {
     position: absolute;
-    top: 20px;
+    top: 70px;
     left: 50%;
     transform: translateX(-50%);
     background: var(--bg-secondary);

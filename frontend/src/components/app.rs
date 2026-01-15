@@ -1,6 +1,8 @@
 use yew::prelude::*;
+use yew::html::Scope;
 use web_sys::window;
 use gloo::storage::{LocalStorage, Storage};
+use gloo_timers::callback::Timeout;
 use wasm_bindgen::JsCast;
 
 use crate::api::ApiClient;
@@ -26,6 +28,7 @@ pub enum Msg {
     ClassificationsLoaded(Result<Vec<ProcessClassification>, String>),
     OpenClassificationSettings,
     ToggleTimeline,
+    ClearAlert,
 }
 
 #[derive(Clone, PartialEq)]
@@ -60,6 +63,7 @@ pub struct App {
     alert_message: Option<(String, AlertType)>,
     fit_view_trigger: bool,
     timeline_visible: bool,
+    alert_timeout: Option<Timeout>,
 }
 
 #[derive(Clone, PartialEq)]
@@ -150,6 +154,7 @@ impl Component for App {
             alert_message: None,
             fit_view_trigger: false,
             timeline_visible: false,
+            alert_timeout: None,
         }
     }
 
@@ -234,7 +239,7 @@ impl Component for App {
 
             Msg::Analyze => {
                 if self.agent_id.trim().is_empty() {
-                    self.show_alert("Please enter an Agent ID".to_string(), AlertType::Error);
+                    self.show_alert(ctx.link(), "Please enter an Agent ID".to_string(), AlertType::Error);
                     return true;
                 }
 
@@ -282,12 +287,13 @@ impl Component for App {
                         self.fit_view_trigger = true;
 
                         self.show_alert(
+                            ctx.link(),
                             format!("Analysis complete: {} processes displayed", count),
                             AlertType::Success,
                         );
                     }
                     Err(err) => {
-                        self.show_alert(err, AlertType::Error);
+                        self.show_alert(ctx.link(), err, AlertType::Error);
                     }
                 }
 
@@ -333,15 +339,21 @@ impl Component for App {
             }
 
             Msg::OpenClassificationSettings => {
-                // Navigate to admin panel
+                // Navigate to settings page (classification management)
                 if let Some(window) = window() {
-                    window.location().set_href("/admin").ok();
+                    window.location().set_href("/settings").ok();
                 }
                 false
             }
 
             Msg::ToggleTimeline => {
                 self.timeline_visible = !self.timeline_visible;
+                true
+            }
+
+            Msg::ClearAlert => {
+                self.alert_message = None;
+                self.alert_timeout = None;
                 true
             }
         }
@@ -678,10 +690,19 @@ impl App {
         }
     }
 
-    fn show_alert(&mut self, message: String, alert_type: AlertType) {
+    fn show_alert(&mut self, link: &Scope<Self>, message: String, alert_type: AlertType) {
         self.alert_message = Some((message, alert_type));
-        // Auto-hide after 5 seconds
-        // We'd need to use a timeout here, but for simplicity we'll leave it visible
+
+        // Cancel any existing timeout
+        self.alert_timeout = None;
+
+        // Auto-hide after 3 seconds
+        let callback = link.callback(|_| Msg::ClearAlert);
+        let timeout = Timeout::new(3_000, move || {
+            callback.emit(());
+        });
+
+        self.alert_timeout = Some(timeout);
     }
 
     fn render_timeline(&self, ctx: &Context<Self>) -> Html {
