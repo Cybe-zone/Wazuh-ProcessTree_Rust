@@ -39,15 +39,18 @@ impl Component for Timeline {
         let mut parse_errors = 0;
 
         for node in ctx.props().nodes.iter() {
-            match DateTime::parse_from_rfc3339(&node.timestamp) {
+            // Normalize timestamp format: convert +0000 to +00:00 if needed
+            let normalized_timestamp = normalize_timestamp(&node.timestamp);
+
+            match DateTime::parse_from_rfc3339(&normalized_timestamp) {
                 Ok(dt) => {
                     timed_nodes.push((node, dt.with_timezone(&Utc)));
                 }
                 Err(e) => {
                     parse_errors += 1;
                     if parse_errors <= 3 {
-                        log::warn!("Failed to parse timestamp '{}' for process {}: {}",
-                            node.timestamp, node.process_name, e);
+                        log::warn!("Failed to parse timestamp '{}' (normalized: '{}') for process {}: {}",
+                            node.timestamp, normalized_timestamp, node.process_name, e);
                     }
                 }
             }
@@ -151,4 +154,26 @@ fn format_duration(duration: Duration) -> String {
     } else {
         format!("{} hours {} minutes", secs / 3600, (secs % 3600) / 60)
     }
+}
+
+/// Normalize timestamp to RFC3339 format
+/// Converts timezone from +0000 to +00:00 format
+fn normalize_timestamp(timestamp: &str) -> String {
+    // Check if timestamp ends with +0000 or -0000 (without colon)
+    if timestamp.len() >= 5 {
+        let len = timestamp.len();
+        let last_5 = &timestamp[len - 5..];
+
+        // Check for +0000 or -0000 pattern
+        if (last_5.starts_with('+') || last_5.starts_with('-')) &&
+           last_5.chars().skip(1).all(|c| c.is_ascii_digit()) {
+            // Insert colon: +0000 -> +00:00
+            let mut normalized = timestamp[..len - 2].to_string();
+            normalized.push(':');
+            normalized.push_str(&timestamp[len - 2..]);
+            return normalized;
+        }
+    }
+
+    timestamp.to_string()
 }
