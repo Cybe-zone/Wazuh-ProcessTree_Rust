@@ -2,6 +2,7 @@ use crate::models::*;
 use gloo::net::http::Request;
 use wasm_bindgen::JsValue;
 
+#[derive(Clone)]
 pub struct ApiClient {
     base_url: String,
 }

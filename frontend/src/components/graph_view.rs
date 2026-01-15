@@ -1,8 +1,9 @@
 use yew::prelude::*;
 use web_sys::{HtmlCanvasElement, MouseEvent, WheelEvent};
-use wasm_bindgen::JsCast;
+use wasm_bindgen::{JsCast, closure::Closure};
 use std::rc::Rc;
 use std::cell::RefCell;
+use gloo::timers::callback::Interval;
 
 use crate::models::*;
 use crate::graph::GraphRenderer;
@@ -18,7 +19,7 @@ pub struct Props {
 pub struct GraphView {
     canvas_ref: NodeRef,
     renderer: Rc<RefCell<Option<GraphRenderer>>>,
-    animation_handle: Option<i32>,
+    animation_handle: Option<Interval>,
 }
 
 pub enum Msg {
@@ -162,34 +163,19 @@ impl Component for GraphView {
     }
 
     fn destroy(&mut self, _ctx: &Context<Self>) {
-        if let Some(handle) = self.animation_handle {
-            web_sys::window()
-                .unwrap()
-                .cancel_animation_frame(handle)
-                .ok();
-        }
+        // Interval will be automatically dropped
     }
 }
 
 impl GraphView {
     fn start_animation(&mut self, ctx: &Context<Self>) {
         let link = ctx.link().clone();
-        let renderer = self.renderer.clone();
 
-        let f = Rc::new(RefCell::new(None));
-        let g = f.clone();
+        // Use Interval to render at ~60fps (16ms)
+        let interval = Interval::new(16, move || {
+            link.send_message(Msg::Animate);
+        });
 
-        *g.borrow_mut() = Some(gloo::utils::window().request_animation_frame(
-            move |_| {
-                link.send_message(Msg::Animate);
-
-                // Continue animation loop
-                if let Some(cb) = f.borrow().as_ref() {
-                    gloo::utils::window()
-                        .request_animation_frame(cb)
-                        .ok();
-                }
-            }
-        ));
+        self.animation_handle = Some(interval);
     }
 }

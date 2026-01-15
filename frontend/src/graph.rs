@@ -161,7 +161,7 @@ impl GraphRenderer {
         &self,
         node_id: &str,
         x: f64,
-        y: f64,
+        _y: f64,
         level: usize,
         node_width: f64,
         node_height: f64,

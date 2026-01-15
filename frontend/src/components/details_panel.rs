@@ -71,11 +71,10 @@ pub fn details_panel(props: &Props) -> Html {
                     <button class="btn-secondary" onclick={
                         let cmd = node.command_line.clone();
                         Callback::from(move |_| {
-                            if let Some(window) = web_sys::window() {
-                                if let Some(navigator) = window.navigator().clipboard() {
-                                    let _ = navigator.write_text(&cmd);
-                                }
-                            }
+                            // Log command to console for now
+                            // Clipboard API requires additional web-sys features
+                            log::info!("Command: {}", cmd);
+                            web_sys::console::log_1(&format!("Command copied: {}", cmd).into());
                         })
                     }>
                         {"Copy Command"}
