@@ -29,6 +29,9 @@ pub enum Msg {
     MouseUp(MouseEvent),
     Wheel(WheelEvent),
     Animate,
+    ZoomIn,
+    ZoomOut,
+    ResetZoom,
 }
 
 impl Component for GraphView {
@@ -108,6 +111,27 @@ impl Component for GraphView {
                 }
                 false
             }
+
+            Msg::ZoomIn => {
+                if let Some(renderer) = self.renderer.borrow_mut().as_mut() {
+                    renderer.zoom_in();
+                }
+                true
+            }
+
+            Msg::ZoomOut => {
+                if let Some(renderer) = self.renderer.borrow_mut().as_mut() {
+                    renderer.zoom_out();
+                }
+                true
+            }
+
+            Msg::ResetZoom => {
+                if let Some(renderer) = self.renderer.borrow_mut().as_mut() {
+                    renderer.reset_zoom();
+                }
+                true
+            }
         }
     }
 
@@ -117,15 +141,49 @@ impl Component for GraphView {
         let onmouseup = ctx.link().callback(Msg::MouseUp);
         let onwheel = ctx.link().callback(Msg::Wheel);
 
+        let zoom_level = self.renderer.borrow()
+            .as_ref()
+            .map(|r| (r.get_scale() * 100.0) as i32)
+            .unwrap_or(100);
+
         html! {
-            <canvas
-                ref={self.canvas_ref.clone()}
-                class="graph-canvas"
-                {onmousedown}
-                {onmousemove}
-                {onmouseup}
-                {onwheel}
-            />
+            <>
+                <canvas
+                    ref={self.canvas_ref.clone()}
+                    class="graph-canvas"
+                    {onmousedown}
+                    {onmousemove}
+                    {onmouseup}
+                    {onwheel}
+                />
+
+                <div class="zoom-controls">
+                    <button
+                        class="zoom-btn"
+                        onclick={ctx.link().callback(|_| Msg::ZoomIn)}
+                        title="Zoom In (Scroll Up)"
+                    >
+                        {"+"}
+                    </button>
+                    <div class="zoom-indicator">
+                        {format!("{}%", zoom_level)}
+                    </div>
+                    <button
+                        class="zoom-btn"
+                        onclick={ctx.link().callback(|_| Msg::ZoomOut)}
+                        title="Zoom Out (Scroll Down)"
+                    >
+                        {"−"}
+                    </button>
+                    <button
+                        class="zoom-btn"
+                        onclick={ctx.link().callback(|_| Msg::ResetZoom)}
+                        title="Reset Zoom"
+                    >
+                        {"⊙"}
+                    </button>
+                </div>
+            </>
         }
     }
 

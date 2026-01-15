@@ -1,6 +1,7 @@
 use yew::prelude::*;
 use web_sys::window;
 use gloo::storage::{LocalStorage, Storage};
+use wasm_bindgen::JsCast;
 
 use crate::api::ApiClient;
 use crate::models::*;
@@ -23,6 +24,7 @@ pub enum Msg {
     FitView,
     LoadClassifications,
     ClassificationsLoaded(Result<Vec<ProcessClassification>, String>),
+    OpenClassificationSettings,
 }
 
 #[derive(Clone, PartialEq)]
@@ -82,6 +84,20 @@ impl Component for App {
         } else {
             Theme::Dark
         };
+
+        // Apply theme to body element on load
+        if let Some(window) = window() {
+            if let Some(document) = window.document() {
+                if let Some(body) = document.body() {
+                    let element: web_sys::Element = body.unchecked_into();
+                    if theme == Theme::Light {
+                        element.set_class_name("light-mode");
+                    } else {
+                        element.set_class_name("");
+                    }
+                }
+            }
+        }
 
         // Load sidebar preferences
         let left_sidebar_visible = LocalStorage::get::<bool>("leftSidebarVisible").unwrap_or(true);
@@ -146,6 +162,21 @@ impl Component for App {
                     Theme::Dark => "dark",
                 };
                 LocalStorage::set("theme", theme_str).ok();
+
+                // Apply theme to body element
+                if let Some(window) = window() {
+                    if let Some(document) = window.document() {
+                        if let Some(body) = document.body() {
+                            let element: web_sys::Element = body.unchecked_into();
+                            if self.theme == Theme::Light {
+                                element.set_class_name("light-mode");
+                            } else {
+                                element.set_class_name("");
+                            }
+                        }
+                    }
+                }
+
                 true
             }
 
@@ -294,6 +325,14 @@ impl Component for App {
             Msg::ClassificationsLoaded(result) => {
                 if let Ok(classifications) = result {
                     self.classifications = classifications;
+                }
+                false
+            }
+
+            Msg::OpenClassificationSettings => {
+                // Navigate to classification settings (could open a modal or navigate to settings page)
+                if let Some(window) = window() {
+                    window.alert_with_message("Classification settings: Coming soon! You can manage process classifications through the admin panel.").ok();
                 }
                 false
             }
@@ -477,7 +516,16 @@ impl App {
                     } else {
                         html! {
                             <div class="sidebar-section">
-                                <h3>{"Legend"}</h3>
+                                <div class="legend-header">
+                                    <h3 style="margin-bottom: 0;">{"Legend"}</h3>
+                                    <button
+                                        class="legend-settings-btn"
+                                        onclick={ctx.link().callback(|_| Msg::OpenClassificationSettings)}
+                                        title="Classification Settings"
+                                    >
+                                        {"⚙"}
+                                    </button>
+                                </div>
                                 {self.render_legend()}
                             </div>
                         }

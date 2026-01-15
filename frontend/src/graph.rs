@@ -489,4 +489,65 @@ impl GraphRenderer {
         self.offset_x = (canvas_width - graph_width * self.scale) / 2.0 - min_x * self.scale;
         self.offset_y = (canvas_height - graph_height * self.scale) / 2.0 - min_y * self.scale;
     }
+
+    pub fn zoom_in(&mut self) {
+        let canvas_width = self.canvas.width() as f64;
+        let canvas_height = self.canvas.height() as f64;
+        let center_x = canvas_width / 2.0;
+        let center_y = canvas_height / 2.0;
+
+        let old_scale = self.scale;
+        self.scale = (self.scale * 1.2).min(5.0);
+
+        let scale_change = self.scale / old_scale;
+        self.offset_x = center_x - (center_x - self.offset_x) * scale_change;
+        self.offset_y = center_y - (center_y - self.offset_y) * scale_change;
+    }
+
+    pub fn zoom_out(&mut self) {
+        let canvas_width = self.canvas.width() as f64;
+        let canvas_height = self.canvas.height() as f64;
+        let center_x = canvas_width / 2.0;
+        let center_y = canvas_height / 2.0;
+
+        let old_scale = self.scale;
+        self.scale = (self.scale / 1.2).max(0.1);
+
+        let scale_change = self.scale / old_scale;
+        self.offset_x = center_x - (center_x - self.offset_x) * scale_change;
+        self.offset_y = center_y - (center_y - self.offset_y) * scale_change;
+    }
+
+    pub fn reset_zoom(&mut self) {
+        self.scale = 1.0;
+        let canvas_width = self.canvas.width() as f64;
+        let canvas_height = self.canvas.height() as f64;
+
+        if !self.nodes.is_empty() {
+            let mut min_x = f64::MAX;
+            let mut max_x = f64::MIN;
+            let mut min_y = f64::MAX;
+            let mut max_y = f64::MIN;
+
+            for node_pos in &self.nodes {
+                min_x = min_x.min(node_pos.x);
+                max_x = max_x.max(node_pos.x + node_pos.width);
+                min_y = min_y.min(node_pos.y);
+                max_y = max_y.max(node_pos.y + node_pos.height);
+            }
+
+            let graph_width = max_x - min_x;
+            let graph_height = max_y - min_y;
+
+            self.offset_x = (canvas_width - graph_width) / 2.0 - min_x;
+            self.offset_y = (canvas_height - graph_height) / 2.0 - min_y;
+        } else {
+            self.offset_x = 0.0;
+            self.offset_y = 50.0;
+        }
+    }
+
+    pub fn get_scale(&self) -> f64 {
+        self.scale
+    }
 }
