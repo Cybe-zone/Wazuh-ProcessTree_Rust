@@ -19,29 +19,59 @@ impl Component for Timeline {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        if !ctx.props().is_visible || ctx.props().nodes.is_empty() {
+        log::info!("Timeline view called - is_visible: {}, nodes count: {}",
+            ctx.props().is_visible,
+            ctx.props().nodes.len()
+        );
+
+        if !ctx.props().is_visible {
+            log::info!("Timeline not visible, returning empty");
+            return html! {};
+        }
+
+        if ctx.props().nodes.is_empty() {
+            log::info!("Timeline nodes empty, returning empty");
             return html! {};
         }
 
         // Parse timestamps and sort nodes by time
-        let mut timed_nodes: Vec<(&ProcessNode, DateTime<Utc>)> = ctx.props().nodes
-            .iter()
-            .filter_map(|node| {
-                DateTime::parse_from_rfc3339(&node.timestamp)
-                    .ok()
-                    .map(|dt| (node, dt.with_timezone(&Utc)))
-            })
-            .collect();
+        let mut timed_nodes: Vec<(&ProcessNode, DateTime<Utc>)> = Vec::new();
+        let mut parse_errors = 0;
+
+        for node in ctx.props().nodes.iter() {
+            match DateTime::parse_from_rfc3339(&node.timestamp) {
+                Ok(dt) => {
+                    timed_nodes.push((node, dt.with_timezone(&Utc)));
+                }
+                Err(e) => {
+                    parse_errors += 1;
+                    if parse_errors <= 3 {
+                        log::warn!("Failed to parse timestamp '{}' for process {}: {}",
+                            node.timestamp, node.process_name, e);
+                    }
+                }
+            }
+        }
+
+        log::info!("Timeline: parsed {} timestamps successfully, {} parse errors",
+            timed_nodes.len(), parse_errors);
 
         timed_nodes.sort_by_key(|(_, dt)| *dt);
 
         if timed_nodes.is_empty() {
+            log::warn!("Timeline: no valid timestamps found, returning empty");
             return html! {};
         }
 
         let first_time = timed_nodes.first().unwrap().1;
         let last_time = timed_nodes.last().unwrap().1;
         let time_range = last_time.signed_duration_since(first_time);
+
+        log::info!("Timeline: {} to {}, range: {:?}",
+            first_time.format("%H:%M:%S"),
+            last_time.format("%H:%M:%S"),
+            time_range
+        );
 
         // Group nodes by time slots (e.g., per second or minute)
         let slot_duration = if time_range.num_seconds() < 60 {

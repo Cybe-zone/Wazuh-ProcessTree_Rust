@@ -165,9 +165,12 @@ impl Component for GraphView {
             }
         }
 
-        // Handle fit view trigger ONLY when it changes from false to true
-        if ctx.props().fit_view_trigger && !self.last_fit_view_trigger {
-            log::info!("Fit view trigger activated");
+        // Handle fit view trigger when it changes (either direction)
+        if ctx.props().fit_view_trigger != self.last_fit_view_trigger {
+            log::info!("Fit view trigger changed: {} -> {}",
+                self.last_fit_view_trigger,
+                ctx.props().fit_view_trigger
+            );
             if let Some(renderer) = self.renderer.borrow_mut().as_mut() {
                 renderer.fit_view();
             }

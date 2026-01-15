@@ -318,7 +318,9 @@ impl Component for App {
             }
 
             Msg::FitView => {
-                self.fit_view_trigger = true;
+                log::info!("FitView button clicked - toggling trigger");
+                // Toggle the trigger to ensure it can be reused
+                self.fit_view_trigger = !self.fit_view_trigger;
                 true
             }
 
@@ -348,6 +350,7 @@ impl Component for App {
 
             Msg::ToggleTimeline => {
                 self.timeline_visible = !self.timeline_visible;
+                log::info!("Timeline toggled - now visible: {}", self.timeline_visible);
                 true
             }
 

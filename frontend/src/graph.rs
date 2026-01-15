@@ -511,13 +511,17 @@ impl GraphRenderer {
     }
 
     pub fn fit_view(&mut self) {
-        log::info!("fit_view called - resetting zoom");
+        log::info!("fit_view called - nodes count: {}", self.nodes.len());
+
         if self.nodes.is_empty() {
+            log::warn!("fit_view: no nodes to fit");
             return;
         }
 
         let canvas_width = self.canvas.width() as f64;
         let canvas_height = self.canvas.height() as f64;
+
+        log::info!("fit_view: canvas size {}x{}", canvas_width, canvas_height);
 
         // Find bounds
         let mut min_x = f64::MAX;
@@ -535,17 +539,22 @@ impl GraphRenderer {
         let graph_width = max_x - min_x;
         let graph_height = max_y - min_y;
 
+        log::info!("fit_view: graph bounds - x:[{}, {}], y:[{}, {}]", min_x, max_x, min_y, max_y);
+        log::info!("fit_view: graph size {}x{}", graph_width, graph_height);
+
         // Calculate scale to fit
         let padding = 50.0;
         let scale_x = (canvas_width - padding * 2.0) / graph_width;
         let scale_y = (canvas_height - padding * 2.0) / graph_height;
         self.scale = scale_x.min(scale_y).min(1.0);
 
-        log::info!("fit_view: set scale to {}", self.scale);
+        log::info!("fit_view: calculated scale - x:{}, y:{}, final:{}", scale_x, scale_y, self.scale);
 
         // Center
         self.offset_x = (canvas_width - graph_width * self.scale) / 2.0 - min_x * self.scale;
         self.offset_y = (canvas_height - graph_height * self.scale) / 2.0 - min_y * self.scale;
+
+        log::info!("fit_view: final offset - x:{}, y:{}", self.offset_x, self.offset_y);
     }
 
     pub fn zoom_in(&mut self) {
