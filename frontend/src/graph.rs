@@ -412,9 +412,10 @@ impl GraphRenderer {
 
     pub fn handle_wheel(&mut self, event: &WheelEvent) {
         event.prevent_default();
+        event.stop_propagation();
 
-        let delta = -event.delta_y();
-        let zoom_factor = if delta > 0.0 { 1.1 } else { 0.9 };
+        let delta = event.delta_y();
+        let zoom_factor = if delta < 0.0 { 1.1 } else { 0.9 };
 
         let mouse_x = event.offset_x() as f64;
         let mouse_y = event.offset_y() as f64;
