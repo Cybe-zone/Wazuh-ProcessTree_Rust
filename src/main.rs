@@ -91,6 +91,11 @@ async fn main() -> std::io::Result<()> {
             .wrap(custom_middleware::SecurityHeaders)
             // Static files with proper MIME types
             .service(
+                Files::new("/wasm", "./static/wasm")
+                    .use_last_modified(true)
+                    .prefer_utf8(true)
+            )
+            .service(
                 Files::new("/static", "./static")
                     .use_last_modified(true)
                     .prefer_utf8(true)
