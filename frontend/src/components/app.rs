@@ -7,7 +7,8 @@ use wasm_bindgen::JsCast;
 
 use crate::api::ApiClient;
 use crate::models::*;
-use crate::components::{graph_view::GraphView, sidebar::Sidebar, details_panel::DetailsPanel, controls::Controls, timeline::Timeline};
+use crate::components::{graph_view::GraphView, sidebar::Sidebar, details_panel::DetailsPanel, controls::Controls, timeline::{Timeline, TimelineAction}};
+use chrono::DateTime;
 
 pub enum Msg {
     ToggleTheme,
@@ -29,6 +30,7 @@ pub enum Msg {
     OpenClassificationSettings,
     ToggleTimeline,
     ClearAlert,
+    TimelineAction(TimelineAction),
 }
 
 #[derive(Clone, PartialEq)]
@@ -54,6 +56,7 @@ pub struct App {
 
     // Data
     tree_data: Option<ProcessTree>,
+    full_tree_data: Option<ProcessTree>, // Unfiltered data
     statistics: Option<Statistics>,
     selected_node_id: Option<String>,
     classifications: Vec<ProcessClassification>,
@@ -64,6 +67,7 @@ pub struct App {
     fit_view_trigger: bool,
     timeline_visible: bool,
     alert_timeout: Option<Timeout>,
+    time_filter: Option<(String, String)>, // (start_time, end_time) for timeline zoom
 }
 
 #[derive(Clone, PartialEq)]
@@ -147,6 +151,7 @@ impl Component for App {
             filter_cmd: String::new(),
             exclude_system: false,
             tree_data: None,
+            full_tree_data: None,
             statistics: None,
             selected_node_id: None,
             classifications: Vec::new(),
@@ -155,6 +160,7 @@ impl Component for App {
             fit_view_trigger: false,
             timeline_visible: false,
             alert_timeout: None,
+            time_filter: None,
         }
     }
 
@@ -282,8 +288,12 @@ impl Component for App {
                         }
 
                         let count = data.tree.nodes.len();
+
+                        // Store full tree data for timeline filtering
+                        self.full_tree_data = Some(data.tree.clone());
                         self.tree_data = Some(data.tree);
                         self.statistics = Some(data.statistics);
+                        self.time_filter = None; // Reset time filter
                         self.fit_view_trigger = true;
 
                         self.show_alert(
@@ -359,6 +369,75 @@ impl Component for App {
                 self.alert_timeout = None;
                 true
             }
+
+            Msg::TimelineAction(action) => {
+                match action {
+                    TimelineAction::ZoomToNode(node_id) => {
+                        log::info!("Zooming to node: {}", node_id);
+                        // Select the node
+                        self.selected_node_id = Some(node_id.clone());
+
+                        // Clear time filter and show only full tree
+                        self.time_filter = None;
+                        if let Some(full_tree) = &self.full_tree_data {
+                            self.tree_data = Some(full_tree.clone());
+                        }
+
+                        // Trigger fit view to center on the graph
+                        self.fit_view_trigger = !self.fit_view_trigger;
+                    }
+                    TimelineAction::ZoomToTimeRange(start_time, end_time) => {
+                        log::info!("Zooming to time range: {} to {}", start_time, end_time);
+
+                        // Parse times
+                        if let (Ok(start), Ok(end)) = (
+                            DateTime::parse_from_rfc3339(&start_time),
+                            DateTime::parse_from_rfc3339(&end_time)
+                        ) {
+                            // Filter nodes by time range
+                            if let Some(full_tree) = &self.full_tree_data {
+                                let mut filtered_tree = full_tree.clone();
+
+                                // Filter nodes within time range
+                                let filtered_node_ids: std::collections::HashSet<String> = filtered_tree
+                                    .nodes
+                                    .iter()
+                                    .filter_map(|node| {
+                                        if let Ok(node_time) = DateTime::parse_from_rfc3339(&crate::components::timeline::normalize_timestamp(&node.timestamp)) {
+                                            if node_time >= start && node_time <= end {
+                                                Some(node.id.clone())
+                                            } else {
+                                                None
+                                            }
+                                        } else {
+                                            None
+                                        }
+                                    })
+                                    .collect();
+
+                                log::info!("Filtered {} nodes in time range", filtered_node_ids.len());
+
+                                // Keep only filtered nodes
+                                filtered_tree.nodes.retain(|n| filtered_node_ids.contains(&n.id));
+
+                                // Keep only edges between filtered nodes
+                                filtered_tree.edges.retain(|e| {
+                                    filtered_node_ids.contains(&e.from) && filtered_node_ids.contains(&e.to)
+                                });
+
+                                filtered_tree.total_processes = filtered_tree.nodes.len();
+
+                                self.tree_data = Some(filtered_tree);
+                                self.time_filter = Some((start_time, end_time));
+
+                                // Trigger fit view to center on filtered nodes
+                                self.fit_view_trigger = !self.fit_view_trigger;
+                            }
+                        }
+                    }
+                }
+                true
+            }
         }
     }
 
@@ -373,6 +452,9 @@ impl Component for App {
                     on_toggle_theme={ctx.link().callback(|_| Msg::ToggleTheme)}
                     on_fit_view={ctx.link().callback(|_| Msg::FitView)}
                     on_logout={ctx.link().callback(|_| Msg::Logout)}
+                    statistics={self.statistics.clone()}
+                    total_processes={self.tree_data.as_ref().map(|t| t.nodes.len()).unwrap_or(0)}
+                    orphan_count={self.tree_data.as_ref().map(|t| t.orphans.len()).unwrap_or(0)}
                 />
 
                 <div class="main-layout">
@@ -709,7 +791,8 @@ impl App {
     }
 
     fn render_timeline(&self, ctx: &Context<Self>) -> Html {
-        if let Some(tree) = &self.tree_data {
+        // Use full_tree_data for timeline to always show all processes
+        if let Some(tree) = &self.full_tree_data {
             html! {
                 <>
                     <button
@@ -723,6 +806,7 @@ impl App {
                     <Timeline
                         nodes={tree.nodes.clone()}
                         is_visible={self.timeline_visible}
+                        on_action={ctx.link().callback(Msg::TimelineAction)}
                     />
                 </>
             }

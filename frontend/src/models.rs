@@ -42,7 +42,7 @@ pub struct ProcessTree {
     pub total_processes: usize,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Statistics {
     pub total_processes: usize,
     pub suspicious_count: usize,

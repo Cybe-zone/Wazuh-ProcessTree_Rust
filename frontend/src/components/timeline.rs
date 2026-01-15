@@ -1,11 +1,20 @@
 use yew::prelude::*;
+use web_sys::MouseEvent;
+use wasm_bindgen::JsCast;
 use chrono::{DateTime, Utc, Duration};
 use crate::models::ProcessNode;
+
+#[derive(Clone, PartialEq)]
+pub enum TimelineAction {
+    ZoomToNode(String),  // node_id
+    ZoomToTimeRange(String, String),  // start_time, end_time
+}
 
 #[derive(Properties, PartialEq)]
 pub struct Props {
     pub nodes: Vec<ProcessNode>,
     pub is_visible: bool,
+    pub on_action: Callback<TimelineAction>,
 }
 
 pub struct Timeline;
@@ -103,7 +112,43 @@ impl Component for Timeline {
                             {first_time.format("%H:%M:%S").to_string()}
                         </div>
 
-                        <div class="timeline-track">
+                        <div
+                            class="timeline-track"
+                            onclick={
+                                let on_action = ctx.props().on_action.clone();
+                                let first_time = first_time;
+                                let time_range = time_range;
+                                Callback::from(move |e: MouseEvent| {
+                                    let target = e.target().unwrap();
+                                    let element: web_sys::HtmlElement = target.dyn_into().unwrap();
+                                    let rect = element.get_bounding_client_rect();
+                                    let click_x = e.client_x() as f64 - rect.left();
+                                    let track_width = rect.width();
+                                    let position_percent = (click_x / track_width).max(0.0).min(1.0);
+
+                                    log::info!("Timeline track clicked at position: {:.2}%", position_percent * 100.0);
+
+                                    // Calculate time at click position
+                                    let click_offset_ms = (time_range.num_milliseconds() as f64 * position_percent) as i64;
+                                    let click_time = first_time + Duration::milliseconds(click_offset_ms);
+
+                                    // Calculate time range: ±10% of total range
+                                    let range_margin_ms = (time_range.num_milliseconds() as f64 * 0.1) as i64;
+                                    let start_time = click_time - Duration::milliseconds(range_margin_ms);
+                                    let end_time = click_time + Duration::milliseconds(range_margin_ms);
+
+                                    log::info!("Zooming to time range: {} to {}",
+                                        start_time.format("%H:%M:%S"),
+                                        end_time.format("%H:%M:%S")
+                                    );
+
+                                    on_action.emit(TimelineAction::ZoomToTimeRange(
+                                        start_time.to_rfc3339(),
+                                        end_time.to_rfc3339()
+                                    ));
+                                })
+                            }
+                        >
                             {
                                 timed_nodes.iter().map(|(node, dt)| {
                                     let elapsed = dt.signed_duration_since(first_time);
@@ -112,6 +157,9 @@ impl Component for Timeline {
                                     } else {
                                         0.0
                                     };
+
+                                    let node_id = node.id.clone();
+                                    let on_action = ctx.props().on_action.clone();
 
                                     html! {
                                         <div
@@ -122,6 +170,14 @@ impl Component for Timeline {
                                                 node.process_id,
                                                 dt.format("%H:%M:%S%.3f")
                                             )}
+                                            onclick={
+                                                let node_id = node_id.clone();
+                                                Callback::from(move |e: MouseEvent| {
+                                                    e.stop_propagation(); // Prevent track click
+                                                    log::info!("Timeline dot clicked - node_id: {}", node_id);
+                                                    on_action.emit(TimelineAction::ZoomToNode(node_id.clone()));
+                                                })
+                                            }
                                         />
                                     }
                                 }).collect::<Html>()
@@ -158,7 +214,7 @@ fn format_duration(duration: Duration) -> String {
 
 /// Normalize timestamp to RFC3339 format
 /// Converts timezone from +0000 to +00:00 format
-fn normalize_timestamp(timestamp: &str) -> String {
+pub fn normalize_timestamp(timestamp: &str) -> String {
     // Check if timestamp ends with +0000 or -0000 (without colon)
     if timestamp.len() >= 5 {
         let len = timestamp.len();

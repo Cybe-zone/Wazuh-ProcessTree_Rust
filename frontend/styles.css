@@ -71,6 +71,46 @@ body {
     text-shadow: 0 0 10px rgba(118, 185, 71, 0.3);
 }
 
+.controls-stats {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.stat-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 6px 12px;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    min-width: 70px;
+}
+
+.stat-badge .stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent-primary);
+    line-height: 1;
+}
+
+.stat-badge.stat-suspicious .stat-value {
+    color: var(--warning);
+}
+
+.stat-badge.stat-orphans .stat-value {
+    color: var(--danger);
+}
+
+.stat-badge .stat-label {
+    font-size: 10px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+}
+
 .controls-right {
     display: flex;
     gap: 10px;
@@ -514,7 +554,7 @@ body {
 /* Alert */
 .alert {
     position: absolute;
-    top: 20px;
+    top: 120px;
     left: 50%;
     transform: translateX(-50%);
     padding: 12px 24px;
