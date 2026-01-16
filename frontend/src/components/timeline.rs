@@ -18,14 +18,109 @@ pub struct Props {
     pub hidden_classifications: std::collections::HashSet<String>,
 }
 
-pub struct Timeline;
+pub struct Timeline {
+    selection_start: f64,  // Percentage 0.0 - 100.0
+    selection_end: f64,    // Percentage 0.0 - 100.0
+    dragging_handle: Option<DraggingHandle>,
+}
+
+#[derive(Clone, PartialEq)]
+enum DraggingHandle {
+    Start,
+    End,
+}
+
+pub enum TimelineMsg {
+    StartDragHandle(DraggingHandle, f64), // handle, initial position
+    DragHandle(f64), // current position
+    EndDrag,
+    ApplySelection,
+}
 
 impl Component for Timeline {
-    type Message = ();
+    type Message = TimelineMsg;
     type Properties = Props;
 
     fn create(_ctx: &Context<Self>) -> Self {
-        Self
+        Self {
+            selection_start: 0.0,
+            selection_end: 100.0,
+            dragging_handle: None,
+        }
+    }
+
+    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
+        match msg {
+            TimelineMsg::StartDragHandle(handle, _position) => {
+                self.dragging_handle = Some(handle);
+                true
+            }
+            TimelineMsg::DragHandle(position) => {
+                if let Some(handle) = &self.dragging_handle {
+                    match handle {
+                        DraggingHandle::Start => {
+                            self.selection_start = position.max(0.0).min(self.selection_end - 5.0);
+                        }
+                        DraggingHandle::End => {
+                            self.selection_end = position.min(100.0).max(self.selection_start + 5.0);
+                        }
+                    }
+                }
+                true
+            }
+            TimelineMsg::EndDrag => {
+                if self.dragging_handle.is_some() {
+                    self.dragging_handle = None;
+
+                    // Parse timestamps to calculate time range
+                    let mut timed_nodes: Vec<DateTime<Utc>> = Vec::new();
+                    for node in ctx.props().nodes.iter() {
+                        if ctx.props().hidden_classifications.contains(&node.classification) {
+                            continue;
+                        }
+                        let normalized_timestamp = normalize_timestamp(&node.timestamp);
+                        if let Ok(dt) = DateTime::parse_from_rfc3339(&normalized_timestamp) {
+                            timed_nodes.push(dt.with_timezone(&Utc));
+                        }
+                    }
+
+                    timed_nodes.sort();
+
+                    if !timed_nodes.is_empty() {
+                        let first_time = timed_nodes.first().unwrap();
+                        let last_time = timed_nodes.last().unwrap();
+                        let time_range = last_time.signed_duration_since(*first_time);
+
+                        // Calculate time at selection positions
+                        let start_offset_ms = (time_range.num_milliseconds() as f64 * self.selection_start / 100.0) as i64;
+                        let end_offset_ms = (time_range.num_milliseconds() as f64 * self.selection_end / 100.0) as i64;
+
+                        let start_time = *first_time + Duration::milliseconds(start_offset_ms);
+                        let end_time = *first_time + Duration::milliseconds(end_offset_ms);
+
+                        log::info!("Selection range: {}% to {}%, time range: {} to {}",
+                            self.selection_start, self.selection_end,
+                            start_time.format("%H:%M:%S"),
+                            end_time.format("%H:%M:%S")
+                        );
+
+                        ctx.props().on_action.emit(TimelineAction::ZoomToTimeRange(
+                            start_time.to_rfc3339(),
+                            end_time.to_rfc3339()
+                        ));
+                    }
+                }
+                true
+            }
+            TimelineMsg::ApplySelection => {
+                // Convert percentages to time range
+                if let Some(nodes) = ctx.props().nodes.first() {
+                    // This will be handled when user releases the drag
+                    log::info!("Apply selection: {}% to {}%", self.selection_start, self.selection_end);
+                }
+                false
+            }
+        }
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
@@ -126,6 +221,26 @@ impl Component for Timeline {
 
                         <div
                             class="timeline-track"
+                            onmousemove={
+                                let link = ctx.link().clone();
+                                Callback::from(move |e: MouseEvent| {
+                                    if e.buttons() == 1 {  // Left mouse button is pressed
+                                        let target = e.current_target().unwrap();
+                                        let element: web_sys::HtmlElement = target.dyn_into().unwrap();
+                                        let rect = element.get_bounding_client_rect();
+                                        let mouse_x = e.client_x() as f64 - rect.left();
+                                        let track_width = rect.width();
+                                        let position_percent = (mouse_x / track_width * 100.0).max(0.0).min(100.0);
+                                        link.send_message(TimelineMsg::DragHandle(position_percent));
+                                    }
+                                })
+                            }
+                            onmouseup={
+                                let link = ctx.link().clone();
+                                Callback::from(move |_e: MouseEvent| {
+                                    link.send_message(TimelineMsg::EndDrag);
+                                })
+                            }
                             onclick={
                                 let on_action = ctx.props().on_action.clone();
                                 let first_time = first_time;
@@ -194,6 +309,55 @@ impl Component for Timeline {
                                     }
                                 }).collect::<Html>()
                             }
+
+                            // Selection range overlay
+                            <div
+                                class="timeline-selection-range"
+                                style={format!("left: {}%; width: {}%",
+                                    self.selection_start,
+                                    self.selection_end - self.selection_start
+                                )}
+                            />
+
+                            // Start handle
+                            <div
+                                class="timeline-handle timeline-handle-start"
+                                style={format!("left: {}%", self.selection_start)}
+                                onmousedown={
+                                    let link = ctx.link().clone();
+                                    Callback::from(move |e: MouseEvent| {
+                                        e.prevent_default();
+                                        e.stop_propagation();
+                                        let rect = e.current_target().unwrap()
+                                            .dyn_into::<web_sys::HtmlElement>().unwrap()
+                                            .get_bounding_client_rect();
+                                        let pos = e.client_x() as f64 - rect.left();
+                                        link.send_message(TimelineMsg::StartDragHandle(DraggingHandle::Start, pos));
+                                    })
+                                }
+                            >
+                                <div class="timeline-handle-grip"></div>
+                            </div>
+
+                            // End handle
+                            <div
+                                class="timeline-handle timeline-handle-end"
+                                style={format!("left: {}%", self.selection_end)}
+                                onmousedown={
+                                    let link = ctx.link().clone();
+                                    Callback::from(move |e: MouseEvent| {
+                                        e.prevent_default();
+                                        e.stop_propagation();
+                                        let rect = e.current_target().unwrap()
+                                            .dyn_into::<web_sys::HtmlElement>().unwrap()
+                                            .get_bounding_client_rect();
+                                        let pos = e.client_x() as f64 - rect.left();
+                                        link.send_message(TimelineMsg::StartDragHandle(DraggingHandle::End, pos));
+                                    })
+                                }
+                            >
+                                <div class="timeline-handle-grip"></div>
+                            </div>
                         </div>
 
                         <div class="timeline-end-marker">

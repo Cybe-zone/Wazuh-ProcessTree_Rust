@@ -805,3 +805,52 @@ body {
     font-size: 12px;
     color: var(--text-secondary);
 }
+
+/* Timeline Selection Range */
+.timeline-selection-range {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background: rgba(118, 185, 71, 0.2);
+    border-left: 2px solid var(--accent-primary);
+    border-right: 2px solid var(--accent-primary);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.timeline-handle {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 40px;
+    background: var(--accent-primary);
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    cursor: ew-resize;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.timeline-handle:hover {
+    background: var(--accent-secondary);
+    transform: translate(-50%, -50%) scale(1.1);
+    box-shadow: 0 3px 12px rgba(118, 185, 71, 0.5);
+}
+
+.timeline-handle-grip {
+    width: 3px;
+    height: 20px;
+    background: repeating-linear-gradient(
+        to bottom,
+        var(--bg-primary) 0px,
+        var(--bg-primary) 2px,
+        transparent 2px,
+        transparent 4px
+    );
+    border-radius: 2px;
+}

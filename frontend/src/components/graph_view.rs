@@ -14,6 +14,7 @@ pub struct Props {
     pub is_light_mode: bool,
     pub on_node_select: Callback<Option<String>>,
     pub fit_view_trigger: bool,
+    pub zoom_to_node_id: Option<String>,
 }
 
 pub struct GraphView {
@@ -22,6 +23,7 @@ pub struct GraphView {
     animation_handle: Option<Interval>,
     last_data_hash: Option<usize>,
     last_fit_view_trigger: bool,
+    last_zoom_node_id: Option<String>,
 }
 
 pub enum Msg {
@@ -44,6 +46,7 @@ impl Component for GraphView {
             animation_handle: None,
             last_data_hash: None,
             last_fit_view_trigger: false,
+            last_zoom_node_id: None,
         }
     }
 
@@ -176,6 +179,20 @@ impl Component for GraphView {
             }
         }
         self.last_fit_view_trigger = ctx.props().fit_view_trigger;
+
+        // Handle zoom to node when it changes
+        if let Some(node_id) = &ctx.props().zoom_to_node_id {
+            if self.last_zoom_node_id.as_ref() != Some(node_id) {
+                log::info!("Zoom to node trigger: {}", node_id);
+                if let Some(renderer) = self.renderer.borrow_mut().as_mut() {
+                    renderer.zoom_to_node(node_id);
+                }
+                self.last_zoom_node_id = Some(node_id.clone());
+            }
+        } else if self.last_zoom_node_id.is_some() {
+            // Reset tracking when zoom_to_node_id becomes None
+            self.last_zoom_node_id = None;
+        }
 
         // Resize canvas if needed
         if let Some(canvas) = self.canvas_ref.cast::<HtmlCanvasElement>() {

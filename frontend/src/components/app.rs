@@ -70,6 +70,7 @@ pub struct App {
     alert_timeout: Option<Timeout>,
     time_filter: Option<(String, String)>, // (start_time, end_time) for timeline zoom
     hidden_classifications: std::collections::HashSet<String>, // Classifications to hide
+    zoom_to_node_id: Option<String>, // Node ID to zoom to
 }
 
 #[derive(Clone, PartialEq)]
@@ -164,6 +165,7 @@ impl Component for App {
             alert_timeout: None,
             time_filter: None,
             hidden_classifications: std::collections::HashSet::new(),
+            zoom_to_node_id: None,
         }
     }
 
@@ -380,14 +382,14 @@ impl Component for App {
                         // Select the node
                         self.selected_node_id = Some(node_id.clone());
 
-                        // Clear time filter and show only full tree
+                        // Clear time filter and show full tree
                         self.time_filter = None;
                         if let Some(full_tree) = &self.full_tree_data {
                             self.tree_data = Some(full_tree.clone());
                         }
 
-                        // Trigger fit view to center on the graph
-                        self.fit_view_trigger = !self.fit_view_trigger;
+                        // Trigger zoom to specific node
+                        self.zoom_to_node_id = Some(node_id);
                     }
                     TimelineAction::ZoomToTimeRange(start_time, end_time) => {
                         log::info!("Zooming to time range: {} to {}", start_time, end_time);
@@ -483,6 +485,7 @@ impl Component for App {
                             is_light_mode={is_light}
                             on_node_select={ctx.link().callback(Msg::SelectNode)}
                             fit_view_trigger={self.fit_view_trigger}
+                            zoom_to_node_id={self.zoom_to_node_id.clone()}
                         />
 
                         {self.render_timeline(ctx)}

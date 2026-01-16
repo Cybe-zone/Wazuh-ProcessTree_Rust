@@ -557,6 +557,34 @@ impl GraphRenderer {
         log::info!("fit_view: final offset - x:{}, y:{}", self.offset_x, self.offset_y);
     }
 
+    pub fn zoom_to_node(&mut self, node_id: &str) {
+        log::info!("zoom_to_node called for node_id: {}", node_id);
+
+        // Find the node
+        let node_pos = self.nodes.iter().find(|n| n.node.id == node_id);
+
+        if let Some(node) = node_pos {
+            let canvas_width = self.canvas.width() as f64;
+            let canvas_height = self.canvas.height() as f64;
+
+            // Calculate node center in graph coordinates
+            let node_center_x = node.x + node.width / 2.0;
+            let node_center_y = node.y + node.height / 2.0;
+
+            // Set zoom level to show node prominently (2x zoom)
+            self.scale = 1.5;
+
+            // Calculate offset to center the node
+            self.offset_x = canvas_width / 2.0 - node_center_x * self.scale;
+            self.offset_y = canvas_height / 2.0 - node_center_y * self.scale;
+
+            log::info!("zoom_to_node: centered on node at ({}, {}), scale: {}, offset: ({}, {})",
+                node_center_x, node_center_y, self.scale, self.offset_x, self.offset_y);
+        } else {
+            log::warn!("zoom_to_node: node not found: {}", node_id);
+        }
+    }
+
     pub fn zoom_in(&mut self) {
         let canvas_width = self.canvas.width() as f64;
         let canvas_height = self.canvas.height() as f64;
