@@ -464,6 +464,17 @@ impl Component for App {
         let is_light = self.theme == Theme::Light;
         let theme_class = if is_light { "light-mode" } else { "" };
 
+        // Calculate statistics from full_tree_data
+        let (total_processes, orphan_count, classification_stats) = if let Some(tree) = &self.full_tree_data {
+            let mut stats = std::collections::HashMap::new();
+            for node in &tree.nodes {
+                *stats.entry(node.classification.clone()).or_insert(0) += 1;
+            }
+            (tree.total_processes, tree.orphans.len(), stats)
+        } else {
+            (0, 0, std::collections::HashMap::new())
+        };
+
         html! {
             <div class={classes!("app-container", theme_class)}>
                 <Controls
@@ -471,6 +482,9 @@ impl Component for App {
                     on_toggle_theme={ctx.link().callback(|_| Msg::ToggleTheme)}
                     on_fit_view={ctx.link().callback(|_| Msg::FitView)}
                     on_logout={ctx.link().callback(|_| Msg::Logout)}
+                    classification_stats={classification_stats}
+                    total_processes={total_processes}
+                    orphan_count={orphan_count}
                 />
 
                 <div class="main-layout">
