@@ -5,12 +5,13 @@ use crate::services::database::DatabaseService;
 use crate::services::wazuh::WazuhClient;
 use crate::error::AppError;
 use uuid::Uuid;
+use std::sync::Arc;
 
 pub async fn login(
     req: HttpRequest,
     session: Session,
     data: web::Json<LoginRequest>,
-    db: web::Data<DatabaseService>,
+    db: web::Data<Arc<DatabaseService>>,
 ) -> Result<HttpResponse, AppError> {
     let login_data = data.into_inner();
 
@@ -71,7 +72,7 @@ pub async fn login(
 
 pub async fn logout(
     session: Session,
-    db: web::Data<DatabaseService>,
+    db: web::Data<Arc<DatabaseService>>,
     req: HttpRequest,
 ) -> Result<HttpResponse, AppError> {
     if let Ok(Some(session_id)) = session.get::<String>("session_id") {
@@ -109,7 +110,7 @@ pub async fn logout(
 
 pub async fn check_session(
     session: Session,
-    db: web::Data<DatabaseService>,
+    db: web::Data<Arc<DatabaseService>>,
 ) -> Result<HttpResponse, AppError> {
     if let Ok(Some(session_id)) = session.get::<String>("session_id") {
         if let Some(db_session) = db.get_session(&session_id).await? {

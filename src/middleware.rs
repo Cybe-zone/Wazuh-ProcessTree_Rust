@@ -2,8 +2,7 @@ use actix_web::{
     dev::{Service, ServiceRequest, ServiceResponse, Transform},
     Error, HttpMessage,
 };
-use futures::future::{ok, Ready};
-use std::future::Future;
+use std::future::{ready, Ready, Future};
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
@@ -22,7 +21,7 @@ where
     type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
     fn new_transform(&self, service: S) -> Self::Future {
-        ok(SecurityHeadersMiddleware { service })
+        ready(Ok(SecurityHeadersMiddleware { service }))
     }
 }
 
@@ -53,25 +52,25 @@ where
             let headers = res.headers_mut();
             headers.insert(
                 actix_web::http::header::HeaderName::from_static("x-content-type-options"),
-                actix_web::http::HeaderValue::from_static("nosniff"),
+                actix_web::http::header::HeaderValue::from_static("nosniff"),
             );
             headers.insert(
                 actix_web::http::header::HeaderName::from_static("x-frame-options"),
-                actix_web::http::HeaderValue::from_static("SAMEORIGIN"),
+                actix_web::http::header::HeaderValue::from_static("SAMEORIGIN"),
             );
             headers.insert(
                 actix_web::http::header::HeaderName::from_static("x-xss-protection"),
-                actix_web::http::HeaderValue::from_static("1; mode=block"),
+                actix_web::http::header::HeaderValue::from_static("1; mode=block"),
             );
             headers.insert(
                 actix_web::http::header::HeaderName::from_static("strict-transport-security"),
-                actix_web::http::HeaderValue::from_static("max-age=31536000; includeSubDomains"),
+                actix_web::http::header::HeaderValue::from_static("max-age=31536000; includeSubDomains"),
             );
             headers.insert(
                 actix_web::http::header::HeaderName::from_static("content-security-policy"),
-                actix_web::http::HeaderValue::from_static(
+                actix_web::http::header::HeaderValue::from_static(
                     "default-src 'self'; \
-                     script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; \
+                     script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdnjs.cloudflare.com; \
                      style-src 'self' 'unsafe-inline'; \
                      img-src 'self' data:; \
                      font-src 'self' data:; \
@@ -87,7 +86,6 @@ where
 // Session Authentication Middleware
 use actix_session::SessionExt;
 use crate::error::AppError;
-use crate::services::database::DatabaseService;
 
 pub struct AuthMiddleware;
 
@@ -104,7 +102,7 @@ where
     type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
     fn new_transform(&self, service: S) -> Self::Future {
-        ok(AuthMiddlewareService { service })
+        ready(Ok(AuthMiddlewareService { service }))
     }
 }
 

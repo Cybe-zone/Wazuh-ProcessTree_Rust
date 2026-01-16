@@ -4,18 +4,19 @@ use crate::models::{ClassificationUpdateRequest, ApiResponse};
 use crate::services::database::DatabaseService;
 use crate::services::classification::ClassificationService;
 use crate::error::AppError;
+use std::sync::Arc;
 
 
 pub async fn get_all_classifications(
     session: Session,
-    db: web::Data<DatabaseService>,
+    db: web::Data<Arc<DatabaseService>>,
 ) -> Result<HttpResponse, AppError> {
     // Verify session
     let _session_id = session.get::<String>("session_id")
         .map_err(|_| AppError::Unauthorized)?
         .ok_or(AppError::Unauthorized)?;
 
-    let classification_service = ClassificationService::new(db.clone());
+    let classification_service = ClassificationService::new(Arc::clone(db.get_ref()));
     let classifications = classification_service.get_all_classifications().await?;
 
     Ok(HttpResponse::Ok().json(ApiResponse::success(classifications)))
@@ -24,7 +25,7 @@ pub async fn get_all_classifications(
 pub async fn get_classification(
     session: Session,
     id: web::Path<String>,
-    db: web::Data<DatabaseService>,
+    db: web::Data<Arc<DatabaseService>>,
 ) -> Result<HttpResponse, AppError> {
     // Verify session
     let _session_id = session.get::<String>("session_id")
@@ -41,15 +42,15 @@ pub async fn get_classification(
 pub async fn create_classification(
     session: Session,
     data: web::Json<ClassificationUpdateRequest>,
-    db: web::Data<DatabaseService>,
+    db: web::Data<Arc<DatabaseService>>,
 ) -> Result<HttpResponse, AppError> {
     // Verify session
     let session_id = session.get::<String>("session_id")
         .map_err(|_| AppError::Unauthorized)?
         .ok_or(AppError::Unauthorized)?;
 
-    let classification_service = ClassificationService::new(db.clone());
-    
+    let classification_service = ClassificationService::new(Arc::clone(db.get_ref()));
+
     let id = classification_service.create_classification(
         data.name.clone(),
         data.patterns.clone(),
@@ -80,15 +81,15 @@ pub async fn update_classification(
     session: Session,
     id: web::Path<String>,
     data: web::Json<ClassificationUpdateRequest>,
-    db: web::Data<DatabaseService>,
+    db: web::Data<Arc<DatabaseService>>,
 ) -> Result<HttpResponse, AppError> {
     // Verify session
     let session_id = session.get::<String>("session_id")
         .map_err(|_| AppError::Unauthorized)?
         .ok_or(AppError::Unauthorized)?;
 
-    let classification_service = ClassificationService::new(db.clone());
-    
+    let classification_service = ClassificationService::new(Arc::clone(db.get_ref()));
+
     classification_service.update_classification(
         &id,
         data.name.clone(),
@@ -119,15 +120,15 @@ pub async fn update_classification(
 pub async fn delete_classification(
     session: Session,
     id: web::Path<String>,
-    db: web::Data<DatabaseService>,
+    db: web::Data<Arc<DatabaseService>>,
 ) -> Result<HttpResponse, AppError> {
     // Verify session
     let session_id = session.get::<String>("session_id")
         .map_err(|_| AppError::Unauthorized)?
         .ok_or(AppError::Unauthorized)?;
 
-    let classification_service = ClassificationService::new(db.clone());
-    
+    let classification_service = ClassificationService::new(Arc::clone(db.get_ref()));
+
     // Get classification name before deletion for audit
     let classification = db.get_classification(&id)
         .await?
@@ -153,14 +154,14 @@ pub async fn delete_classification(
 
 pub async fn initialize_defaults(
     session: Session,
-    db: web::Data<DatabaseService>,
+    db: web::Data<Arc<DatabaseService>>,
 ) -> Result<HttpResponse, AppError> {
     // Verify session
     let _session_id = session.get::<String>("session_id")
         .map_err(|_| AppError::Unauthorized)?
         .ok_or(AppError::Unauthorized)?;
 
-    let classification_service = ClassificationService::new(db.clone());
+    let classification_service = ClassificationService::new(Arc::clone(db.get_ref()));
     classification_service.initialize_default_classifications().await?;
 
     tracing::info!("Initialized default classifications");

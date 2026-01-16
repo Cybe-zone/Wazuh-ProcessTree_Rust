@@ -2,6 +2,7 @@
 let network = null;
 let currentTreeData = null;
 let currentStatistics = null;
+let isFirstLoad = true;
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', async () => {
@@ -9,7 +10,95 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeNetwork();
     setDefaultTimes();
     loadClassifications();
+    loadThemePreference();
+    loadSidebarPreferences();
 });
+
+// Theme Management
+function toggleTheme() {
+    const body = document.body;
+    const slider = document.querySelector('.theme-toggle-slider');
+
+    body.classList.toggle('light-mode');
+
+    if (body.classList.contains('light-mode')) {
+        slider.textContent = '☀️';
+        localStorage.setItem('theme', 'light');
+    } else {
+        slider.textContent = '🌙';
+        localStorage.setItem('theme', 'dark');
+    }
+
+    // Reinitialize network with new theme colors
+    if (network && currentTreeData) {
+        updateVisualization(currentTreeData);
+    }
+}
+
+function loadThemePreference() {
+    const theme = localStorage.getItem('theme');
+    const slider = document.querySelector('.theme-toggle-slider');
+
+    if (theme === 'light') {
+        document.body.classList.add('light-mode');
+        slider.textContent = '☀️';
+    } else {
+        slider.textContent = '🌙';
+    }
+}
+
+// Sidebar Management
+function toggleSidebar(side) {
+    const container = document.getElementById('mainContainer');
+    const leftHidden = container.classList.contains('hide-left');
+    const rightHidden = container.classList.contains('hide-right');
+
+    if (side === 'left') {
+        if (leftHidden) {
+            container.classList.remove('hide-left');
+            if (rightHidden) {
+                container.classList.remove('hide-both');
+                container.classList.add('hide-right');
+            }
+        } else {
+            container.classList.add('hide-left');
+            if (rightHidden) {
+                container.classList.add('hide-both');
+            }
+        }
+        localStorage.setItem('leftSidebarHidden', !leftHidden);
+    } else if (side === 'right') {
+        if (rightHidden) {
+            container.classList.remove('hide-right');
+            if (leftHidden) {
+                container.classList.remove('hide-both');
+                container.classList.add('hide-left');
+            }
+        } else {
+            container.classList.add('hide-right');
+            if (leftHidden) {
+                container.classList.add('hide-both');
+            }
+        }
+        localStorage.setItem('rightSidebarHidden', !rightHidden);
+    }
+
+    // Don't refit - let user maintain their current view
+}
+
+function loadSidebarPreferences() {
+    const container = document.getElementById('mainContainer');
+    const leftHidden = localStorage.getItem('leftSidebarHidden') === 'true';
+    const rightHidden = localStorage.getItem('rightSidebarHidden') === 'true';
+
+    if (leftHidden && rightHidden) {
+        container.classList.add('hide-both');
+    } else if (leftHidden) {
+        container.classList.add('hide-left');
+    } else if (rightHidden) {
+        container.classList.add('hide-right');
+    }
+}
 
 // Check if user is authenticated
 async function checkSession() {
@@ -35,7 +124,7 @@ function setDefaultTimes() {
     document.getElementById('endTime').value = now.toISOString().slice(0, 16);
 }
 
-// Initialize vis-network
+// Initialize vis-network with optimized settings
 function initializeNetwork() {
     const container = document.getElementById('network');
     const data = { nodes: [], edges: [] };
@@ -47,15 +136,11 @@ function initializeNetwork() {
             widthConstraint: { maximum: 200 },
             font: {
                 size: 14,
-                color: '#ffffff',
+                color: document.body.classList.contains('light-mode') ? '#1a1a1a' : '#ffffff',
                 multi: 'html'
             },
             shadow: {
-                enabled: true,
-                color: 'rgba(0,0,0,0.3)',
-                size: 10,
-                x: 2,
-                y: 2
+                enabled: false  // Disable shadows for better performance
             }
         },
         edges: {
@@ -69,7 +154,12 @@ function initializeNetwork() {
                     enabled: true,
                     scaleFactor: 0.5
                 }
-            }
+            },
+            color: {
+                color: document.body.classList.contains('light-mode') ? '#999999' : '#666666',
+                highlight: '#76b947'
+            },
+            width: 1  // Thinner edges for performance
         },
         physics: {
             enabled: true,
@@ -78,28 +168,38 @@ function initializeNetwork() {
                 springLength: 150,
                 springConstant: 0.01,
                 nodeDistance: 180,
-                damping: 0.09
+                damping: 0.09,
+                avoidOverlap: 0.5
             },
             solver: 'hierarchicalRepulsion',
             stabilization: {
                 enabled: true,
-                iterations: 1000,
-                updateInterval: 25
+                iterations: 500,  // Reduced for faster initial load
+                updateInterval: 50,
+                fit: true
             }
         },
         interaction: {
             hover: true,
             tooltipDelay: 100,
-            navigationButtons: true,
-            keyboard: true
+            navigationButtons: false,  // Disable built-in buttons
+            keyboard: {
+                enabled: true,
+                bindToWindow: false
+            },
+            dragView: true,
+            zoomView: true,
+            dragNodes: false,  // Disable node dragging for better performance
+            zoomSpeed: 1
         },
         layout: {
             hierarchical: {
+                enabled: true,
                 direction: 'UD',
                 sortMethod: 'directed',
-                nodeSpacing: 180,
-                levelSeparation: 180,
-                treeSpacing: 220,
+                nodeSpacing: 150,
+                levelSeparation: 150,
+                treeSpacing: 200,
                 blockShifting: true,
                 edgeMinimization: true,
                 parentCentralization: true
@@ -108,6 +208,12 @@ function initializeNetwork() {
     };
 
     network = new vis.Network(container, data, options);
+
+    // Disable physics after stabilization for better performance
+    network.once('stabilizationIterationsDone', function() {
+        network.setOptions({ physics: { enabled: false } });
+        console.log('Physics disabled - graph is now static for better performance');
+    });
 
     // Event listeners
     network.on('click', function(params) {
@@ -127,6 +233,11 @@ function initializeNetwork() {
                 }
             });
         }
+    });
+
+    // Log zoom changes for debugging
+    network.on('zoom', function(params) {
+        // Removed console.log to reduce noise
     });
 }
 
@@ -173,11 +284,14 @@ async function analyzeAgent() {
             currentTreeData = data.data.tree;
             currentStatistics = data.data.statistics;
 
+            // Apply client-side filtering
+            applyClientSideFilters();
+
             updateVisualization(currentTreeData);
             updateStatistics(currentStatistics);
             updateLegend(currentTreeData);
 
-            showAlert(`Analysis complete: ${currentTreeData.total_processes} processes found`, 'success');
+            showAlert(`Analysis complete: ${currentTreeData.nodes.length} processes displayed`, 'success');
         } else {
             throw new Error(data.error || 'Unknown error');
         }
@@ -189,19 +303,57 @@ async function analyzeAgent() {
     }
 }
 
+// Apply client-side filters to current data
+function applyClientSideFilters() {
+    if (!currentTreeData) return;
+
+    const excludeSystem = document.getElementById('excludeSystem').checked;
+
+    if (excludeSystem) {
+        // Filter out system processes based on classification
+        const systemClassifications = ['System Process', 'system'];
+
+        // Get IDs of nodes to remove
+        const systemNodeIds = new Set(
+            currentTreeData.nodes
+                .filter(node => systemClassifications.some(sc =>
+                    node.classification && node.classification.toLowerCase().includes(sc.toLowerCase())
+                ))
+                .map(node => node.id)
+        );
+
+        // Filter nodes
+        currentTreeData.nodes = currentTreeData.nodes.filter(node => !systemNodeIds.has(node.id));
+
+        // Filter edges
+        currentTreeData.edges = currentTreeData.edges.filter(edge =>
+            !systemNodeIds.has(edge.from) && !systemNodeIds.has(edge.to)
+        );
+
+        // Filter orphans
+        currentTreeData.orphans = currentTreeData.orphans.filter(orphan =>
+            !systemNodeIds.has(orphan.process_id)
+        );
+
+        // Update total
+        currentTreeData.total_processes = currentTreeData.nodes.length;
+
+        console.log(`Filtered out ${systemNodeIds.size} system processes`);
+    }
+}
+
 // Get current filters
 function getFilters() {
     const processName = document.getElementById('filterProcess').value.trim();
     const user = document.getElementById('filterUser').value.trim();
     const cmdContains = document.getElementById('filterCmd').value.trim();
-    const excludeSystem = document.getElementById('excludeSystem').checked;
 
     const filters = {};
     if (processName) filters.process_name = processName;
     if (user) filters.user = user;
     if (cmdContains) filters.command_line_contains = cmdContains;
-    if (excludeSystem) filters.exclude_system = true;
 
+    // Note: exclude_system is handled client-side now
     return Object.keys(filters).length > 0 ? filters : null;
 }
 
@@ -210,9 +362,24 @@ function applyFilters() {
     analyzeAgent();
 }
 
-// Update visualization
+// Update visualization with performance optimizations
 function updateVisualization(treeData) {
     if (!network || !treeData) return;
+
+    console.log(`Rendering ${treeData.nodes.length} nodes and ${treeData.edges.length} edges`);
+
+    // Update node colors based on theme
+    const isLightMode = document.body.classList.contains('light-mode');
+    treeData.nodes.forEach(node => {
+        node.font = {
+            size: 14,
+            color: isLightMode ? '#1a1a1a' : '#ffffff',
+            multi: 'html'
+        };
+    });
+
+    // Enable physics temporarily for layout
+    network.setOptions({ physics: { enabled: true } });
 
     // Update network data
     network.setData({
@@ -220,22 +387,32 @@ function updateVisualization(treeData) {
         edges: treeData.edges
     });
 
-    // Stabilize and fit
-    network.once('stabilizationIterationsDone', function() {
-        network.fit({
-            animation: {
-                duration: 1000,
-                easingFunction: 'easeInOutQuad'
-            }
+    // Fit only on first load, then disable physics
+    if (isFirstLoad) {
+        network.once('stabilizationIterationsDone', function() {
+            network.fit({
+                animation: {
+                    duration: 1000,
+                    easingFunction: 'easeInOutQuad'
+                }
+            });
+            // Disable physics after stabilization
+            network.setOptions({ physics: { enabled: false } });
+            isFirstLoad = false;
         });
-    });
+    } else {
+        // On subsequent loads, just disable physics after stabilization
+        network.once('stabilizationIterationsDone', function() {
+            network.setOptions({ physics: { enabled: false } });
+        });
+    }
 }
 
 // Update statistics
 function updateStatistics(stats) {
     if (!stats) return;
 
-    document.getElementById('totalProcesses').textContent = stats.total_processes || 0;
+    document.getElementById('totalProcesses').textContent = currentTreeData?.nodes?.length || 0;
     document.getElementById('suspiciousCount').textContent = stats.suspicious_count || 0;
     document.getElementById('orphanCount').textContent = currentTreeData?.orphans?.length || 0;
 }

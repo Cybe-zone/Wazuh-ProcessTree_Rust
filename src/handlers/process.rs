@@ -6,13 +6,14 @@ use crate::services::wazuh::WazuhClient;
 use crate::services::process_tree::ProcessTreeBuilder;
 use crate::services::classification::ClassificationService;
 use crate::error::AppError;
+use std::sync::Arc;
 
 
 pub async fn analyze_process_tree(
     req: HttpRequest,
     session: Session,
     query: web::Json<ProcessQueryRequest>,
-    db: web::Data<DatabaseService>,
+    db: web::Data<Arc<DatabaseService>>,
 ) -> Result<HttpResponse, AppError> {
     // Get session
     let session_id = session.get::<String>("session_id")
@@ -70,7 +71,7 @@ pub async fn analyze_process_tree(
     tracing::info!("Retrieved {} events for agent {}", events.len(), query.agent_id);
 
     // Build process tree
-    let classification_service = ClassificationService::new(db.clone());
+    let classification_service = ClassificationService::new(Arc::clone(db.get_ref()));
     let tree_builder = ProcessTreeBuilder::new(Arc::new(classification_service));
     
     let process_tree = tree_builder.build_tree(events).await?;
@@ -85,16 +86,34 @@ pub async fn analyze_process_tree(
         process_tree.orphans.len()
     );
 
-    Ok(HttpResponse::Ok().json(ApiResponse::success(serde_json::json!({
+    // Debug logging to identify type mismatches
+    if !process_tree.nodes.is_empty() {
+        tracing::debug!("First node sample: {:?}", &process_tree.nodes[0]);
+    }
+    if !process_tree.orphans.is_empty() {
+        tracing::debug!("First orphan sample: {:?}", &process_tree.orphans[0]);
+    }
+
+    let response_json = serde_json::json!({
         "tree": process_tree,
         "statistics": statistics
-    }))))
+    });
+
+    tracing::debug!("Response JSON (first 500 chars): {}",
+        serde_json::to_string(&response_json)
+            .unwrap_or_default()
+            .chars()
+            .take(500)
+            .collect::<String>()
+    );
+
+    Ok(HttpResponse::Ok().json(ApiResponse::success(response_json)))
 }
 
 pub async fn export_process_tree(
     session: Session,
     data: web::Json<serde_json::Value>,
-    db: web::Data<DatabaseService>,
+    db: web::Data<Arc<DatabaseService>>,
 ) -> Result<HttpResponse, AppError> {
     // Get session
     let session_id = session.get::<String>("session_id")
@@ -152,7 +171,7 @@ pub async fn export_process_tree(
 pub async fn get_agent_info(
     session: Session,
     agent_id: web::Path<String>,
-    db: web::Data<DatabaseService>,
+    db: web::Data<Arc<DatabaseService>>,
 ) -> Result<HttpResponse, AppError> {
     // Get session
     let session_id = session.get::<String>("session_id")
@@ -171,7 +190,7 @@ pub async fn get_agent_info(
     }
 
     // Create Wazuh client
-    let wazuh_client = WazuhClient::new(
+    let _wazuh_client = WazuhClient::new(
         &db_session.indexer_host,
         db_session.indexer_port as u16,
         db_session.indexer_username.clone(),

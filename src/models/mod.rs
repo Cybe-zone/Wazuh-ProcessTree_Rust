@@ -62,16 +62,14 @@ pub struct ProcessEvent {
 pub struct ProcessNode {
     pub id: String,
     pub label: String,
-    pub title: String, // HTML tooltip - now properly escaped
-    pub process_path: String,
+    pub process_id: i64,
+    pub parent_id: Option<i64>,
+    pub process_name: String,
     pub command_line: String,
     pub user: String,
     pub timestamp: String,
-    pub parent_id: String,
+    pub classification: String,
     pub color: NodeColor,
-    pub shape: String,
-    pub font: NodeFont,
-    pub classification: String, // Added for custom classification
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -110,9 +108,10 @@ pub struct ProcessTree {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OrphanProcess {
-    pub pid: String,
-    pub name: String,
-    pub missing_parent: String,
+    pub process_id: i64,
+    pub process_name: String,
+    pub parent_id: Option<i64>,
+    pub timestamp: String,
 }
 
 // ============================================================================
@@ -214,6 +213,7 @@ pub struct ProcessStatistics {
     pub unique_users: usize,
     pub unique_parents: usize,
     pub suspicious_count: usize,
+    pub orphan_count: usize,
     pub time_range_hours: f64,
     pub top_processes: Vec<TopProcess>,
 }

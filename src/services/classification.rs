@@ -145,12 +145,27 @@ impl ClassificationService {
 
     pub async fn initialize_default_classifications(&self) -> Result<(), AppError> {
         let defaults = vec![
-            ("System Process", vec!["system", "smss.exe", "csrss.exe", "wininit.exe", "services.exe", "lsass.exe", "svchost.exe"], "#10b981", "#059669", 100),
-            ("Shell/Script", vec!["powershell", "cmd.exe", "wscript", "cscript", "bash", "sh"], "#f59e0b", "#d97706", 90),
-            ("Browser", vec!["chrome", "firefox", "edge", "iexplore", "brave", "opera"], "#3b82f6", "#2563eb", 80),
-            ("Suspicious", vec!["encoded", "bypass", "hidden", "downloadstring", "invoke-expression", "base64", "mimikatz"], "#ef4444", "#dc2626", 150),
-            ("Development Tools", vec!["code", "devenv", "idea", "pycharm", "visual studio"], "#8b5cf6", "#7c3aed", 70),
-            ("Office Apps", vec!["winword", "excel", "powerpnt", "outlook", "teams"], "#06b6d4", "#0891b2", 60),
+            ("System Process", vec![
+                // Windows system processes
+                "system", "smss.exe", "csrss.exe", "wininit.exe", "services.exe", "lsass.exe", "svchost.exe",
+                "winlogon.exe", "dwm.exe", "explorer.exe", "taskhostw.exe", "sihost.exe", "runtimebroker.exe",
+                "ctfmon.exe", "spoolsv.exe", "wuauclt.exe", "msiexec.exe", "dllhost.exe", "conhost.exe",
+                "fontdrvhost.exe", "audiodg.exe", "searchindexer.exe", "searchprotocolhost.exe",
+                "trustedinstaller.exe", "wudfhost.exe", "wsmprovhost.exe", "wmiprvse.exe",
+                "ntoskrnl.exe", "csrss", "winlogon", "lsaiso.exe", "lsm.exe", "memory compression",
+                // Linux system processes
+                "systemd", "init", "kthreadd", "ksoftirqd", "kworker", "kdevtmpfs", "kswapd",
+                "migration", "watchdog", "cpuhp", "kcompactd", "khugepaged", "ksmd", "khungtaskd",
+                "kauditd", "khelper", "kintegrityd", "kblockd", "ata_sff", "md", "devfreq_wq",
+                "systemd-journald", "systemd-udevd", "systemd-logind", "systemd-resolved", "systemd-timesyncd",
+                "dbus-daemon", "accounts-daemon", "networkmanager", "polkitd", "rsyslogd", "cron", "atd",
+                "upowerd", "avahi-daemon", "cups-browsed", "cupsd", "acpid", "thermald",
+            ], "#10b981", "#059669", 100),
+            ("Shell/Script", vec!["powershell", "cmd.exe", "wscript", "cscript", "bash", "sh", "zsh", "fish", "dash", "ksh"], "#f59e0b", "#d97706", 90),
+            ("Browser", vec!["chrome", "firefox", "edge", "iexplore", "brave", "opera", "safari", "chromium"], "#3b82f6", "#2563eb", 80),
+            ("Suspicious", vec!["encoded", "bypass", "hidden", "downloadstring", "invoke-expression", "base64", "mimikatz", "psexec"], "#ef4444", "#dc2626", 150),
+            ("Development Tools", vec!["code", "devenv", "idea", "pycharm", "visual studio", "vim", "emacs", "nano", "sublime", "atom"], "#8b5cf6", "#7c3aed", 70),
+            ("Office Apps", vec!["winword", "excel", "powerpnt", "outlook", "teams", "onenote", "lync"], "#06b6d4", "#0891b2", 60),
         ];
 
         for (name, patterns, bg, border, priority) in defaults {

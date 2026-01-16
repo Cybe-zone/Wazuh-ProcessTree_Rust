@@ -1,0 +1,67 @@
+[package]
+name = "wptv-frontend"
+version = "1.0.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Yew Framework
+yew = { version = "0.21", features = ["csr"] }
+yew-router = "0.18"
+
+# WASM Bindings
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+
+# Web APIs
+web-sys = { version = "0.3", features = [
+    "Window",
+    "Document",
+    "Element",
+    "HtmlElement",
+    "HtmlInputElement",
+    "HtmlSelectElement",
+    "MouseEvent",
+    "WheelEvent",
+    "KeyboardEvent",
+    "console",
+    "Storage",
+    "Request",
+    "RequestInit",
+    "RequestMode",
+    "Response",
+    "Headers",
+    "CanvasRenderingContext2d",
+    "HtmlCanvasElement",
+    "DomRect",
+    "EventTarget",
+] }
+
+# Utilities
+gloo = { version = "0.11", features = ["futures", "storage", "net"] }
+gloo-timers = { version = "0.3", features = ["futures"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Date/Time
+chrono = { version = "0.4", features = ["serde", "wasmbind"] }
+
+# Async
+futures = "0.3"
+
+# Logging
+log = "0.4"
+wasm-logger = "0.2"
+
+# Graph Visualization (we'll use a canvas-based approach)
+# We'll implement our own graph renderer optimized for WASM
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1

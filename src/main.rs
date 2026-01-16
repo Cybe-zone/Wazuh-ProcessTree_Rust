@@ -1,20 +1,22 @@
-use actix_web::{web, App, HttpServer, middleware};
+use actix_web::{web, App, HttpServer};
 use actix_session::{SessionMiddleware, storage::CookieSessionStore};
 use actix_files::Files;
 use actix_cors::Cors;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use std::time::Duration;
 
 mod config;
 mod models;
 mod handlers;
 mod services;
+mod middleware;
 use crate::middleware as custom_middleware;
 mod error;
 mod utils;
 
 use config::AppConfig;
 use services::database::DatabaseService;
+use services::classification::ClassificationService;
+use std::sync::Arc;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -42,7 +44,17 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("Failed to run migrations");
 
-    let db_data = web::Data::new(db);
+    let db_arc = Arc::new(db);
+    let db_data = web::Data::new(db_arc.clone());
+
+    // Initialize default classifications
+    tracing::info!("Initializing default process classifications...");
+    let classification_service = ClassificationService::new(db_arc.clone());
+    classification_service
+        .initialize_default_classifications()
+        .await
+        .expect("Failed to initialize default classifications");
+    tracing::info!("Default classifications loaded successfully");
 
     // Generate secure session key
     let secret_key = actix_web::cookie::Key::from(config.secret_key.as_bytes());
@@ -74,11 +86,20 @@ async fn main() -> std::io::Result<()> {
             )            
             // Middlewares
             .wrap(cors)
-            .wrap(middleware::Logger::default())
-            .wrap(middleware::Compress::default())
+            .wrap(actix_web::middleware::Logger::default())
+            .wrap(actix_web::middleware::Compress::default())
             .wrap(custom_middleware::SecurityHeaders)
-            // Static files
-            .service(Files::new("/static", "./static"))
+            // Static files with proper MIME types
+            .service(
+                Files::new("/wasm", "./static/wasm")
+                    .use_last_modified(true)
+                    .prefer_utf8(true)
+            )
+            .service(
+                Files::new("/static", "./static")
+                    .use_last_modified(true)
+                    .prefer_utf8(true)
+            )
             // API routes
             .configure(handlers::configure_routes)
     })
