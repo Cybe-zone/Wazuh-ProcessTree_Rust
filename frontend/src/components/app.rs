@@ -31,6 +31,7 @@ pub enum Msg {
     ToggleTimeline,
     ClearAlert,
     TimelineAction(TimelineAction),
+    ToggleClassification(String), // classification name to toggle
 }
 
 #[derive(Clone, PartialEq)]
@@ -68,6 +69,7 @@ pub struct App {
     timeline_visible: bool,
     alert_timeout: Option<Timeout>,
     time_filter: Option<(String, String)>, // (start_time, end_time) for timeline zoom
+    hidden_classifications: std::collections::HashSet<String>, // Classifications to hide
 }
 
 #[derive(Clone, PartialEq)]
@@ -161,6 +163,7 @@ impl Component for App {
             timeline_visible: false,
             alert_timeout: None,
             time_filter: None,
+            hidden_classifications: std::collections::HashSet::new(),
         }
     }
 
@@ -438,6 +441,20 @@ impl Component for App {
                 }
                 true
             }
+
+            Msg::ToggleClassification(classification) => {
+                if self.hidden_classifications.contains(&classification) {
+                    self.hidden_classifications.remove(&classification);
+                    log::info!("Showing classification: {}", classification);
+                } else {
+                    self.hidden_classifications.insert(classification.clone());
+                    log::info!("Hiding classification: {}", classification);
+                }
+
+                // Re-apply filters to update visible nodes
+                self.apply_classification_filter();
+                true
+            }
         }
     }
 
@@ -452,9 +469,6 @@ impl Component for App {
                     on_toggle_theme={ctx.link().callback(|_| Msg::ToggleTheme)}
                     on_fit_view={ctx.link().callback(|_| Msg::FitView)}
                     on_logout={ctx.link().callback(|_| Msg::Logout)}
-                    statistics={self.statistics.clone()}
-                    total_processes={self.tree_data.as_ref().map(|t| t.nodes.len()).unwrap_or(0)}
-                    orphan_count={self.tree_data.as_ref().map(|t| t.orphans.len()).unwrap_or(0)}
                 />
 
                 <div class="main-layout">
@@ -633,7 +647,7 @@ impl App {
                                         {"⚙"}
                                     </button>
                                 </div>
-                                {self.render_legend()}
+                                {self.render_legend(ctx)}
                             </div>
                         }
                     }
@@ -671,8 +685,9 @@ impl App {
         }
     }
 
-    fn render_legend(&self) -> Html {
-        if let Some(tree) = &self.tree_data {
+    fn render_legend(&self, ctx: &Context<Self>) -> Html {
+        // Use full_tree_data to always show all classifications
+        if let Some(tree) = &self.full_tree_data {
             let mut classification_counts: std::collections::HashMap<String, (usize, String)> = std::collections::HashMap::new();
 
             for node in &tree.nodes {
@@ -689,13 +704,23 @@ impl App {
                 <div class="legend-container">
                     {
                         items.iter().map(|(name, (count, color))| {
+                            let is_hidden = self.hidden_classifications.contains(name);
+                            let classification_name = name.clone();
+
                             html! {
-                                <div class="legend-item">
+                                <div class={classes!("legend-item", if is_hidden { Some("legend-item-hidden") } else { None })}>
                                     <div class="legend-color" style={format!("background: {}", color)}></div>
                                     <div class="legend-info">
                                         <div class="legend-name">{name}</div>
                                         <div class="legend-count">{format!("{} processes", count)}</div>
                                     </div>
+                                    <button
+                                        class="legend-toggle-btn"
+                                        onclick={ctx.link().callback(move |_| Msg::ToggleClassification(classification_name.clone()))}
+                                        title={if is_hidden { "Show classification" } else { "Hide classification" }}
+                                    >
+                                        {if is_hidden { "👁" } else { "👁‍🗨" }}
+                                    </button>
                                 </div>
                             }
                         }).collect::<Html>()
@@ -807,6 +832,7 @@ impl App {
                         nodes={tree.nodes.clone()}
                         is_visible={self.timeline_visible}
                         on_action={ctx.link().callback(Msg::TimelineAction)}
+                        hidden_classifications={self.hidden_classifications.clone()}
                     />
                 </>
             }
@@ -837,5 +863,32 @@ impl App {
             !system_node_ids.contains(&orphan.process_id.to_string())
         });
         tree.total_processes = tree.nodes.len();
+    }
+
+    fn apply_classification_filter(&mut self) {
+        if let Some(full_tree) = &self.full_tree_data {
+            let mut filtered_tree = full_tree.clone();
+
+            // Filter nodes by hidden classifications
+            filtered_tree.nodes.retain(|node| {
+                !self.hidden_classifications.contains(&node.classification)
+            });
+
+            // Get filtered node IDs
+            let visible_node_ids: std::collections::HashSet<String> =
+                filtered_tree.nodes.iter().map(|n| n.id.clone()).collect();
+
+            // Filter edges to only include visible nodes
+            filtered_tree.edges.retain(|edge| {
+                visible_node_ids.contains(&edge.from) && visible_node_ids.contains(&edge.to)
+            });
+
+            filtered_tree.total_processes = filtered_tree.nodes.len();
+
+            self.tree_data = Some(filtered_tree);
+
+            // Trigger fit view to adjust to new visible nodes
+            self.fit_view_trigger = !self.fit_view_trigger;
+        }
     }
 }

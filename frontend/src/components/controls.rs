@@ -1,6 +1,5 @@
 use yew::prelude::*;
 use crate::components::app::Theme;
-use crate::models::Statistics;
 
 #[derive(Properties, PartialEq)]
 pub struct Props {
@@ -8,9 +7,6 @@ pub struct Props {
     pub on_toggle_theme: Callback<()>,
     pub on_fit_view: Callback<()>,
     pub on_logout: Callback<()>,
-    pub statistics: Option<Statistics>,
-    pub total_processes: usize,
-    pub orphan_count: usize,
 }
 
 #[function_component(Controls)]
@@ -40,29 +36,6 @@ pub fn controls(props: &Props) -> Html {
             <div class="controls-left">
                 <h1 class="app-title">{"Wazuh Process Tree Viewer"}</h1>
             </div>
-
-            {
-                if let Some(stats) = &props.statistics {
-                    html! {
-                        <div class="controls-stats">
-                            <div class="stat-badge">
-                                <span class="stat-value">{props.total_processes}</span>
-                                <span class="stat-label">{"Total"}</span>
-                            </div>
-                            <div class="stat-badge stat-suspicious">
-                                <span class="stat-value">{stats.suspicious_count}</span>
-                                <span class="stat-label">{"Suspicious"}</span>
-                            </div>
-                            <div class="stat-badge stat-orphans">
-                                <span class="stat-value">{props.orphan_count}</span>
-                                <span class="stat-label">{"Orphans"}</span>
-                            </div>
-                        </div>
-                    }
-                } else {
-                    html! {}
-                }
-            }
 
             <div class="controls-right">
                 <button

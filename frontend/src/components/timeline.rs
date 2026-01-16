@@ -15,6 +15,7 @@ pub struct Props {
     pub nodes: Vec<ProcessNode>,
     pub is_visible: bool,
     pub on_action: Callback<TimelineAction>,
+    pub hidden_classifications: std::collections::HashSet<String>,
 }
 
 pub struct Timeline;
@@ -43,11 +44,18 @@ impl Component for Timeline {
             return html! {};
         }
 
-        // Parse timestamps and sort nodes by time
+        // Parse timestamps and sort nodes by time, filtering out hidden classifications
         let mut timed_nodes: Vec<(&ProcessNode, DateTime<Utc>)> = Vec::new();
         let mut parse_errors = 0;
+        let mut filtered_count = 0;
 
         for node in ctx.props().nodes.iter() {
+            // Skip nodes with hidden classifications
+            if ctx.props().hidden_classifications.contains(&node.classification) {
+                filtered_count += 1;
+                continue;
+            }
+
             // Normalize timestamp format: convert +0000 to +00:00 if needed
             let normalized_timestamp = normalize_timestamp(&node.timestamp);
 
@@ -63,6 +71,10 @@ impl Component for Timeline {
                     }
                 }
             }
+        }
+
+        if filtered_count > 0 {
+            log::info!("Timeline: filtered out {} nodes with hidden classifications", filtered_count);
         }
 
         log::info!("Timeline: parsed {} timestamps successfully, {} parse errors",

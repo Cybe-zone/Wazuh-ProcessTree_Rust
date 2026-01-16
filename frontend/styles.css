@@ -362,6 +362,44 @@ body {
     color: var(--text-secondary);
 }
 
+.legend-toggle-btn {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.legend-toggle-btn:hover {
+    background: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
+    transform: scale(1.1);
+}
+
+.legend-item-hidden {
+    opacity: 0.5;
+    background: var(--bg-primary);
+}
+
+.legend-item-hidden .legend-color {
+    opacity: 0.3;
+}
+
+.legend-item-hidden .legend-name,
+.legend-item-hidden .legend-count {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
 /* Details Panel */
 .details-panel {
     height: 100%;
